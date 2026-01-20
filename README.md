@@ -260,13 +260,12 @@ docker ps
 
 ```
 docker cp chemin/vers/script.sql nom_du_conteneur:/tmp/script.sql
-docker cp /home/liantsoa/Documents/Ratah/Vacance/sql/Oracle.sql oracle:/tmp/Oracle.sql
 ```
 
 3. Exécute-le dans Oracle avec `sqlplus`
 
 ```
-@/tmp/Oracle.sql
+@/tmp/script.sql
 ```
 
 
