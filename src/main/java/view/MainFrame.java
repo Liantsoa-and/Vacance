@@ -42,6 +42,10 @@ public class MainFrame extends JFrame {
         // Onglet 2: Navigation
         tabbedPane.addTab("🗺️ Navigation", panelNavigation);
 
+        // Onglet 3: Gestion Réparations
+        GestionReparationPanel panelReparations = new GestionReparationPanel();
+        tabbedPane.addTab("🔧 Réparations", panelReparations);
+
         add(tabbedPane);
 
         // Écoutants
@@ -141,7 +145,7 @@ public class MainFrame extends JFrame {
                 JOptionPane.INFORMATION_MESSAGE);
     }
 
-   // Dans la méthode calculerTrajet() de MainFrame.java, remplacer:
+    // Dans la méthode calculerTrajet() de MainFrame.java, remplacer:
 
     private void calculerTrajet() {
         try {
@@ -200,12 +204,12 @@ public class MainFrame extends JFrame {
                         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
                         String message = String.format(
                                 "%d trajet(s) trouvé(s)!\n\nMeilleur trajet:\n" +
-                                "- Distance: %.2f km\n" +
-                                "- Temps de route: %s\n" +
-                                "- Temps d'attente: %s\n" +
-                                "- Temps total: %s\n" +
-                                "- Départ: %s\n" +
-                                "- Arrivée: %s",
+                                        "- Distance: %.2f km\n" +
+                                        "- Temps de route: %s\n" +
+                                        "- Temps d'attente: %s\n" +
+                                        "- Temps total: %s\n" +
+                                        "- Départ: %s\n" +
+                                        "- Arrivée: %s",
                                 resultats.size(),
                                 resultats.get(0).getDistanceTotaleKm(),
                                 resultats.get(0).getTempsFormate(),
@@ -213,7 +217,7 @@ public class MainFrame extends JFrame {
                                 resultats.get(0).getTempsTotalAvecPausesFormate(),
                                 sdf.format(resultats.get(0).getHeureDepart()),
                                 sdf.format(resultats.get(0).getHeureArrivee()));
-                        
+
                         JOptionPane.showMessageDialog(MainFrame.this, message,
                                 "Trajets calculés", JOptionPane.INFORMATION_MESSAGE);
 

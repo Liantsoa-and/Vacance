@@ -2,7 +2,7 @@
 -- NETTOYAGE COMPLET
 -- ==========================================
 BEGIN
-   EXECUTE IMMEDIATE 'DROP VIEW VUE_DEGAT_REPARATION';
+   EXECUTE IMMEDIATE 'DROP VIEW VUE_DEGAT_COUT';
 EXCEPTION
    WHEN OTHERS THEN NULL;
 END;
@@ -16,14 +16,14 @@ END;
 /
 
 BEGIN
-   EXECUTE IMMEDIATE 'DROP TABLE INTERVALLE_PROFONDEUR CASCADE CONSTRAINTS';
+   EXECUTE IMMEDIATE 'DROP TABLE DEGAT CASCADE CONSTRAINTS';
 EXCEPTION
    WHEN OTHERS THEN NULL;
 END;
 /
 
 BEGIN
-   EXECUTE IMMEDIATE 'DROP TABLE DEGAT CASCADE CONSTRAINTS';
+   EXECUTE IMMEDIATE 'DROP TABLE MATERIAU CASCADE CONSTRAINTS';
 EXCEPTION
    WHEN OTHERS THEN NULL;
 END;
@@ -85,6 +85,27 @@ EXCEPTION
 END;
 /
 
+BEGIN
+   EXECUTE IMMEDIATE 'DROP SEQUENCE SEQ_MATERIAU';
+EXCEPTION
+   WHEN OTHERS THEN NULL;
+END;
+/
+
+BEGIN
+   EXECUTE IMMEDIATE 'DROP SEQUENCE SEQ_DEGAT';
+EXCEPTION
+   WHEN OTHERS THEN NULL;
+END;
+/
+
+BEGIN
+   EXECUTE IMMEDIATE 'DROP SEQUENCE SEQ_REPARATION';
+EXCEPTION
+   WHEN OTHERS THEN NULL;
+END;
+/
+
 -- ==========================================
 -- CRÉATION DES SÉQUENCES
 -- ==========================================
@@ -92,6 +113,9 @@ CREATE SEQUENCE SEQ_POINT START WITH 1 INCREMENT BY 1 NOCACHE;
 CREATE SEQUENCE SEQ_CHEMIN START WITH 1 INCREMENT BY 1 NOCACHE;
 CREATE SEQUENCE SEQ_DOMMAGE START WITH 1 INCREMENT BY 1 NOCACHE;
 CREATE SEQUENCE SEQ_PAUSE START WITH 1 INCREMENT BY 1 NOCACHE;
+CREATE SEQUENCE SEQ_MATERIAU START WITH 1 INCREMENT BY 1 NOCACHE;
+CREATE SEQUENCE SEQ_DEGAT START WITH 1 INCREMENT BY 1 NOCACHE;
+CREATE SEQUENCE SEQ_REPARATION START WITH 1 INCREMENT BY 1 NOCACHE;
 
 -- ==========================================
 -- CRÉATION DES TABLES
@@ -134,73 +158,58 @@ CREATE TABLE PAUSE (
     CHECK (heure_debut < heure_fin)
 );
 
--- Table des Dégâts
+-- Table des Matériaux
+CREATE TABLE MATERIAU (
+    id NUMBER PRIMARY KEY,
+    nom VARCHAR2(100) NOT NULL UNIQUE,
+    description VARCHAR2(200)
+);
+
+-- Table des Dégâts (avec matériau optionnel si déjà décidé)
 CREATE TABLE DEGAT (
     id NUMBER PRIMARY KEY,
     chemin_id NUMBER NOT NULL REFERENCES CHEMIN(id),
     point_km NUMBER(10, 2) NOT NULL,
     surface_m2 NUMBER(10, 2) NOT NULL,
-    profondeur_m NUMBER(10, 2) NOT NULL
+    profondeur_m NUMBER(10, 2) NOT NULL,
+    materiau_id NUMBER REFERENCES MATERIAU(id)
 );
 
--- Table des Intervalles de Profondeur
-CREATE TABLE INTERVALLE_PROFONDEUR (
-    id NUMBER PRIMARY KEY,
-    profondeur_min NUMBER(10, 2) NOT NULL CHECK (profondeur_min >= 0),
-    profondeur_max NUMBER(10, 2) NOT NULL,
-    description VARCHAR2(200),
-    CHECK (profondeur_max > profondeur_min)
-);
-
--- Table des Réparations avec prix par intervalle
+-- Table des Réparations (intervalles + prix par matériau)
 CREATE TABLE REPARATION (
     id NUMBER PRIMARY KEY,
-    type_materiau VARCHAR2(100) NOT NULL,
-    intervalle_profondeur_id NUMBER NOT NULL REFERENCES INTERVALLE_PROFONDEUR(id),
+    materiau_id NUMBER NOT NULL REFERENCES MATERIAU(id),
+    profondeur_min NUMBER(10, 2) NOT NULL CHECK (profondeur_min >= 0),
+    profondeur_max NUMBER(10, 2) NOT NULL,
     prix_par_m2 NUMBER(10, 2) NOT NULL CHECK (prix_par_m2 > 0),
-    UNIQUE (type_materiau, intervalle_profondeur_id)
+    description VARCHAR2(200),
+    CHECK (profondeur_max > profondeur_min),
+    UNIQUE (materiau_id, profondeur_min, profondeur_max)
 );
 
 -- ==========================================
--- VUE POUR LIER DYNAMIQUEMENT DÉGÂTS ET RÉPARATIONS
+-- VUE POUR CALCULER LES COÛTS DE RÉPARATION
 -- ==========================================
 
-CREATE OR REPLACE VIEW VUE_DEGAT_REPARATION AS
+CREATE OR REPLACE VIEW VUE_DEGAT_COUT AS
 SELECT 
-    -- Informations sur le dégât
     d.id AS degat_id,
     d.chemin_id,
     ch.nom AS nom_chemin,
     d.point_km,
     d.surface_m2,
     d.profondeur_m,
-    -- Informations sur l'intervalle de profondeur
-    ip.id AS intervalle_id,
-    ip.profondeur_min,
-    ip.profondeur_max,
-    ip.description AS description_intervalle,
-    -- Informations sur la réparation
+    m.id AS materiau_id,
+    m.nom AS materiau_nom,
     r.id AS reparation_id,
-    r.type_materiau,
+    r.profondeur_min,
+    r.profondeur_max,
     r.prix_par_m2,
-    -- Calculs
-    d.surface_m2 * r.prix_par_m2 AS cout_reparation,
-    -- Informations supplémentaires
-    CASE 
-        WHEN d.profondeur_m BETWEEN ip.profondeur_min AND ip.profondeur_max 
-        THEN 'DANS_INTERVALLE'
-        ELSE 'HORS_INTERVALLE'
-    END AS statut_correspondance
+    r.description,
+    (d.surface_m2 * r.prix_par_m2) AS cout_reparation
 FROM DEGAT d
--- Jointure avec le chemin pour avoir le nom
 INNER JOIN CHEMIN ch ON d.chemin_id = ch.id
--- Jointure CROSS avec tous les matériaux de réparation
-CROSS JOIN (
-    SELECT DISTINCT type_materiau 
-    FROM REPARATION
-) materiau
--- Jointure avec les réparations pour chaque matériau
-INNER JOIN REPARATION r ON materiau.type_materiau = r.type_materiau
--- Jointure avec l'intervalle de profondeur
-INNER JOIN INTERVALLE_PROFONDEUR ip ON r.intervalle_profondeur_id = ip.id
-ORDER BY d.id, r.type_materiau, ip.profondeur_min;
+LEFT JOIN MATERIAU m ON d.materiau_id = m.id
+LEFT JOIN REPARATION r ON r.materiau_id = d.materiau_id
+    AND d.profondeur_m >= r.profondeur_min 
+    AND d.profondeur_m < r.profondeur_max;
