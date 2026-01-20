@@ -22,7 +22,7 @@ public class ChoicePanel extends JPanel {
         // Table des chemins - Ajout de colonnes pour les horaires
         tableModel = new DefaultTableModel(
                 new String[] { "Classement", "Distance (km)", "Vitesse Moyenne Réelle", "Temps Route", "Attente",
-                        "Total", "Arrivée", "Conforme" },
+                        "Total", "Arrivée", "Coût Réparation (Ar)", "Conforme" },
                 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -43,7 +43,7 @@ public class ChoicePanel extends JPanel {
         }
 
         // Renderer pour la colonne "Conforme"
-        tableChemins.getColumnModel().getColumn(7).setCellRenderer(new DefaultTableCellRenderer() {
+        tableChemins.getColumnModel().getColumn(8).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
                     boolean isSelected, boolean hasFocus, int row, int column) {
@@ -95,6 +95,7 @@ public class ChoicePanel extends JPanel {
             String heureArrivee = rt.getHeureArrivee() != null ? sdf.format(rt.getHeureArrivee()) : "-";
             String conforme = rt.isConforme() ? "Oui" : "Non";
             String vitesseReelle = String.format("%.2f km/h", rt.getVitesseMoyenneReelle());
+            String coutReparation = String.format("%.2f", rt.getCoutReparationAr());
 
             tableModel.addRow(new Object[] {
                     i + 1,
@@ -104,6 +105,7 @@ public class ChoicePanel extends JPanel {
                     tempsAttente,
                     tempsTotal,
                     heureArrivee,
+                    coutReparation,
                     conforme
             });
         }
@@ -126,6 +128,7 @@ public class ChoicePanel extends JPanel {
             detailsArea.append("📍 Distance      : " + String.format("%.2f km", rt.getDistanceTotaleKm()) + "\n");
             detailsArea.append("🚗 Vitesse réelle: " + String.format("%.2f km/h", rt.getVitesseMoyenneReelle())
                     + " (avec dommages)\n");
+            detailsArea.append("💰 Coût réparation: " + String.format("%.2f Ar", rt.getCoutReparationAr()) + "\n");
             detailsArea.append("⏱️  Temps route   : " + rt.getTempsFormate() + "\n");
 
             if (rt.getTempsAttenteTotalHeures() > 0) {

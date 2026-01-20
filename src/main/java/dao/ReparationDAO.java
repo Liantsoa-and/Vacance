@@ -241,4 +241,47 @@ public class ReparationDAO {
         }
         return 0.0;
     }
+
+    /**
+     * Calcule le coût de réparation groupé par chemin pour une liste donnée.
+     * Retourne une liste d'objets [chemin_id, cout_total].
+     */
+    public List<Object[]> calculerCoutParChemin(List<Integer> cheminIds) throws SQLException {
+        List<Object[]> resultats = new ArrayList<>();
+        if (cheminIds == null || cheminIds.isEmpty()) {
+            return resultats;
+        }
+
+        StringBuilder placeholders = new StringBuilder();
+        for (int i = 0; i < cheminIds.size(); i++) {
+            if (i > 0)
+                placeholders.append(",");
+            placeholders.append("?");
+        }
+
+        String sql = "SELECT chemin_id, SUM(cout_reparation) AS cout_total " +
+                "FROM VUE_DEGAT_COUT " +
+                "WHERE chemin_id IN (" + placeholders + ") " +
+                "GROUP BY chemin_id " +
+                "ORDER BY chemin_id";
+
+        try (Connection conn = OracleConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            for (int i = 0; i < cheminIds.size(); i++) {
+                stmt.setInt(i + 1, cheminIds.get(i));
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    int cheminId = rs.getInt("chemin_id");
+                    double cout = rs.getDouble("cout_total");
+                    if (rs.wasNull())
+                        cout = 0.0;
+                    resultats.add(new Object[] { cheminId, cout });
+                }
+            }
+        }
+        return resultats;
+    }
 }

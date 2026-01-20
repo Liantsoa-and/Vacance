@@ -270,12 +270,26 @@ public class TrajetController {
         System.out.println(
                 "Vitesse moyenne réelle (avec dommages): " + String.format("%.2f", vitesseMoyenneReelle) + " km/h\n");
 
+        // Calcul du coût de réparation pour cet itinéraire
+        double coutReparation = 0.0;
+        try {
+            List<Integer> cheminIds = new ArrayList<>();
+            for (Chemin c : itineraire) {
+                cheminIds.add(c.getId());
+            }
+            ReparationDAO reparationDAO = new ReparationDAO();
+            coutReparation = reparationDAO.calculerCoutPourChemins(cheminIds);
+        } catch (SQLException e) {
+            System.err.println("Erreur lors du calcul du coût de réparation: " + e.getMessage());
+        }
+
         ResultatTrajet resultat = new ResultatTrajet(vehicule, itineraire, tempsRouteTotal,
                 distanceTotale, conforme);
         resultat.setHeureDepart(heureDepart);
         resultat.setHeureArrivee(heureCourante);
         resultat.setTempsAttenteTotalHeures(tempsAttenteTotal);
         resultat.setVitesseMoyenneReelle(vitesseMoyenneReelle);
+        resultat.setCoutReparationAr(coutReparation);
 
         if (!resultat.peutFaireTrajetAvecPleinReservoir()) {
             resultat.setConforme(false);

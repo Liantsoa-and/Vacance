@@ -18,6 +18,7 @@ public class ResultatTrajet {
     private Date heureArrivee;
     private double tempsAttenteTotalHeures; // Temps d'attente aux pauses
     private double vitesseMoyenneReelle; // Vitesse moyenne réelle avec dommages
+    private double coutReparationAr; // Coût total de réparation en Ariary
 
     public ResultatTrajet() {
         this.itineraire = new ArrayList<>();
@@ -25,6 +26,7 @@ public class ResultatTrajet {
         this.distanceTotaleKm = 0.0;
         this.conforme = true;
         this.tempsAttenteTotalHeures = 0.0;
+        this.coutReparationAr = 0.0;
     }
 
     public ResultatTrajet(Vehicule vehicule, List<Chemin> itineraire, double tempsTotalHeures,
@@ -36,6 +38,7 @@ public class ResultatTrajet {
         this.conforme = conforme;
         this.tempsAttenteTotalHeures = 0.0;
         this.vitesseMoyenneReelle = 0.0;
+        this.coutReparationAr = 0.0;
     }
 
     // ================== GETTERS & SETTERS ==================
@@ -110,6 +113,21 @@ public class ResultatTrajet {
 
     public void setVitesseMoyenneReelle(double vitesseMoyenneReelle) {
         this.vitesseMoyenneReelle = vitesseMoyenneReelle;
+    }
+
+    public double getCoutReparationAr() {
+        return coutReparationAr;
+    }
+
+    public void setCoutReparationAr(double coutReparationAr) {
+        this.coutReparationAr = coutReparationAr;
+    }
+
+    /**
+     * Retourne le coût de réparation formaté
+     */
+    public String getCoutReparationFormate() {
+        return String.format("%.2f Ar", coutReparationAr);
     }
 
     /**

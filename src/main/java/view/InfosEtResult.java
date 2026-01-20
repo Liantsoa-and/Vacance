@@ -8,8 +8,11 @@ import java.util.List;
 import model.ResultatTrajet;
 import model.Chemin;
 import model.Dommage;
+import model.Degat;
 import controller.TrajetController;
 import dao.DommageDAO;
+import dao.DegatDAO;
+import dao.ReparationDAO;
 
 public class InfosEtResult extends JPanel {
     private JLabel lblVehicule;
@@ -24,6 +27,7 @@ public class InfosEtResult extends JPanel {
     private JLabel lblConsommationTrajet;
     private JLabel lblConformiteCarburant;
     private JLabel lblVitesseMoyenneReelle;
+    private JLabel lblCoutReparationTotal;
 
     private DefaultTableModel tableModel;
     private ResultatTrajet resultatSelectionne;
@@ -64,13 +68,15 @@ public class InfosEtResult extends JPanel {
         JPanel panelItineraire = new JPanel(new BorderLayout());
         panelItineraire.setBorder(BorderFactory.createTitledBorder("Itinéraire"));
 
-        tableModel = new DefaultTableModel(new String[] { "Chemin", "Distance (km)", "Vitesse Moyenne Réelle (km/h)" },
+        tableModel = new DefaultTableModel(
+                new String[] { "Chemin", "Distance (km)", "Vitesse Moyenne Réelle (km/h)", "Dégâts",
+                        "Coût Réparation (Ar)" },
                 0);
         tableItineraire = new JTable(tableModel);
         panelItineraire.add(new JScrollPane(tableItineraire), BorderLayout.CENTER);
 
         // Panel résumé
-        JPanel panelResume = new JPanel(new GridLayout(5, 2, 10, 10));
+        JPanel panelResume = new JPanel(new GridLayout(6, 2, 10, 10));
         panelResume.setBorder(BorderFactory.createTitledBorder("Résumé du Trajet"));
 
         panelResume.add(new JLabel("Distance Totale :"));
@@ -98,6 +104,12 @@ public class InfosEtResult extends JPanel {
         lblConformiteCarburant.setFont(new Font("Arial", Font.BOLD, 12));
         panelResume.add(lblConformiteCarburant);
 
+        panelResume.add(new JLabel("Coût Réparation Total :"));
+        lblCoutReparationTotal = new JLabel("-");
+        lblCoutReparationTotal.setFont(new Font("Arial", Font.BOLD, 12));
+        lblCoutReparationTotal.setForeground(new Color(0, 100, 150));
+        panelResume.add(lblCoutReparationTotal);
+
         // Assemblage
         JPanel panelHaut = new JPanel(new BorderLayout(10, 10));
         panelHaut.add(panelInfoVehicule, BorderLayout.WEST);
@@ -124,24 +136,40 @@ public class InfosEtResult extends JPanel {
         tableModel.setRowCount(0);
         List<Chemin> itineraire = resultat.getItineraire();
         DommageDAO daoDommage = new DommageDAO();
+        DegatDAO daoDegatDAO = new DegatDAO();
+        ReparationDAO reparationDAO = new ReparationDAO();
 
         for (Chemin c : itineraire) {
             try {
                 List<Dommage> dommages = daoDommage.getByCheminId(c.getId());
+                List<Degat> degats = daoDegatDAO.getParChemin(c.getId());
+
                 // Calculer la vitesse moyenne réelle pour ce chemin
-                // Pour un seul chemin avec vitesse moyenne de 100 km/h comme référence
                 double vitesseReelleChemin = TrajetController.calculerVitesseMoyenneReelleChemin(c, dommages, 100.0);
+
+                // Compter les dégâts
+                String infoDegats = degats.size() + " dégât(s)";
+
+                // Calculer le coût de réparation pour ce chemin
+                List<Integer> cheminIds = new java.util.ArrayList<>();
+                cheminIds.add(c.getId());
+                double coutChemin = reparationDAO.calculerCoutPourChemins(cheminIds);
+                String coutFormate = String.format("%.2f", coutChemin);
 
                 tableModel.addRow(new Object[] {
                         c.getNom(),
                         String.format("%.2f", c.getDistance()),
-                        String.format("%.2f", vitesseReelleChemin)
+                        String.format("%.2f", vitesseReelleChemin),
+                        infoDegats,
+                        coutFormate
                 });
             } catch (SQLException e) {
-                // En cas d'erreur, afficher quand même le chemin avec vitesse par défaut
+                // En cas d'erreur, afficher quand même le chemin avec valeurs par défaut
                 tableModel.addRow(new Object[] {
                         c.getNom(),
                         String.format("%.2f", c.getDistance()),
+                        "N/A",
+                        "N/A",
                         "N/A"
                 });
             }
@@ -151,6 +179,9 @@ public class InfosEtResult extends JPanel {
         lblDistanceTotal.setText(String.format("%.2f km", resultat.getDistanceTotaleKm()));
         lblTempsTotal.setText(TrajetController.formatDuree(resultat.getTempsTotalHeures()));
         lblVitesseMoyenneReelle.setText(String.format("%.2f km/h", resultat.getVitesseMoyenneReelle()));
+
+        // Afficher le coût total de réparation
+        lblCoutReparationTotal.setText(String.format("%.2f Ar", resultat.getCoutReparationAr()));
 
         // Afficher le besoin en carburant
         double consommationCarburant = resultat.calculerConsommationCarburant();
