@@ -725,6 +725,14 @@ public class GestionReparationPanel extends JPanel {
         bottomPanel.add(coutPanel, BorderLayout.WEST);
 
         JPanel btnBottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+        JButton btnRecapitulatifTri = new JButton("📊 Récapitulatif avec Tri");
+        btnRecapitulatifTri.setBackground(new Color(70, 130, 180));
+        btnRecapitulatifTri.setForeground(Color.WHITE);
+        btnRecapitulatifTri.setFont(new Font("Arial", Font.BOLD, 12));
+        btnRecapitulatifTri.addActionListener(e -> afficherRecapitulatif());
+        btnBottomPanel.add(btnRecapitulatifTri);
+
         JButton btnSupprimer = new JButton("Supprimer Sélectionnée");
         btnSupprimer.addActionListener(e -> supprimerReparationDegat());
         btnBottomPanel.add(btnSupprimer);
@@ -1158,24 +1166,62 @@ public class GestionReparationPanel extends JPanel {
             String[] colonnes = { "Dégât", "Matériau", "Coût (Ar)" };
             DefaultTableModel modelRecap = new DefaultTableModel(colonnes, 0);
 
-            double totalGeneral = 0;
-            for (ReparationDegat rd : reparationsValidees) {
-                modelRecap.addRow(new Object[] {
-                        rd.getDegatInfo(),
-                        rd.getMateriauNom(),
-                        String.format("%.2f", rd.getCoutReparation())
-                });
-                totalGeneral += rd.getCoutReparation();
-            }
+            // Méthode pour remplir le tableau
+            Runnable remplirTableau = () -> {
+                modelRecap.setRowCount(0);
+                for (ReparationDegat rd : reparationsValidees) {
+                    modelRecap.addRow(new Object[] {
+                            rd.getDegatInfo(),
+                            rd.getMateriauNom(),
+                            String.format("%.2f", rd.getCoutReparation())
+                    });
+                }
+            };
+
+            // Remplissage initial
+            remplirTableau.run();
 
             JTable tableRecap = new JTable(modelRecap);
             tableRecap.getColumnModel().getColumn(0).setPreferredWidth(300);
             tableRecap.getColumnModel().getColumn(1).setPreferredWidth(120);
             tableRecap.getColumnModel().getColumn(2).setPreferredWidth(100);
 
-            frameRecap.add(new JScrollPane(tableRecap), BorderLayout.CENTER);
+            // Panel de tri
+            JPanel panelTri = new JPanel(new FlowLayout(FlowLayout.CENTER));
+            panelTri.setBorder(BorderFactory.createTitledBorder("Tri par Coût"));
+            panelTri.setBackground(new Color(240, 240, 240));
+
+            JButton btnTriAscendant = new JButton("↑ Croissant");
+            btnTriAscendant.setPreferredSize(new Dimension(120, 30));
+            btnTriAscendant.addActionListener(e -> {
+                reparationsValidees.sort((r1, r2) -> Double.compare(r1.getCoutReparation(), r2.getCoutReparation()));
+                remplirTableau.run();
+                modelRecap.fireTableDataChanged(); // Notifier le changement
+            });
+
+            JButton btnTriDescendant = new JButton("↓ Décroissant");
+            btnTriDescendant.setPreferredSize(new Dimension(120, 30));
+            btnTriDescendant.addActionListener(e -> {
+                reparationsValidees.sort((r1, r2) -> Double.compare(r2.getCoutReparation(), r1.getCoutReparation()));
+                remplirTableau.run();
+                modelRecap.fireTableDataChanged(); // Notifier le changement
+            });
+
+            panelTri.add(new JLabel("Trier par coût : "));
+            panelTri.add(btnTriAscendant);
+            panelTri.add(btnTriDescendant);
+
+            // Forcer une hauteur minimale pour le panel de tri
+            panelTri.setPreferredSize(new Dimension(600, 80));
+            // Panel central avec table et boutons de tri
+            JPanel panelCentral = new JPanel(new BorderLayout());
+            panelCentral.add(panelTri, BorderLayout.NORTH);
+            panelCentral.add(new JScrollPane(tableRecap), BorderLayout.CENTER);
+
+            frameRecap.add(panelCentral, BorderLayout.CENTER);
 
             // Panel total
+            double totalGeneral = reparationsValidees.stream().mapToDouble(ReparationDegat::getCoutReparation).sum();
             JPanel panelTotal = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             JLabel lblTotalRecap = new JLabel("TOTAL GÉNÉRAL : " + String.format("%.2f Ar", totalGeneral));
             lblTotalRecap.setFont(new Font("Arial", Font.BOLD, 16));
@@ -1184,7 +1230,7 @@ public class GestionReparationPanel extends JPanel {
 
             frameRecap.add(panelTotal, BorderLayout.SOUTH);
 
-            frameRecap.setSize(650, 400);
+            frameRecap.setSize(650, 450);
             frameRecap.setLocationRelativeTo(this);
             frameRecap.setVisible(true);
 
