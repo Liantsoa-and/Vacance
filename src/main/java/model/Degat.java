@@ -6,19 +6,17 @@ public class Degat {
     private double pointKm;
     private double surfaceM2;
     private double profondeurM;
-    private Integer materiauId;
 
     public Degat() {
     }
 
     public Degat(Integer id, Integer cheminId, double pointKm, double surfaceM2,
-            double profondeurM, Integer materiauId) {
+            double profondeurM) {
         this.id = id;
         this.cheminId = cheminId;
         this.pointKm = pointKm;
         this.surfaceM2 = surfaceM2;
         this.profondeurM = profondeurM;
-        this.materiauId = materiauId;
     }
 
     public Integer getId() {
@@ -61,11 +59,9 @@ public class Degat {
         this.profondeurM = profondeurM;
     }
 
-    public Integer getMateriauId() {
-        return materiauId;
-    }
-
-    public void setMateriauId(Integer materiauId) {
-        this.materiauId = materiauId;
+    @Override
+    public String toString() {
+        return String.format("Point %.2f km (Surf: %.2f m², Prof: %.2f m)",
+                pointKm, surfaceM2, profondeurM);
     }
 }

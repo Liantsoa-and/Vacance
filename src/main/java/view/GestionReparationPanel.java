@@ -10,10 +10,12 @@ import dao.MateriauDAO;
 import dao.ReparationDAO;
 import dao.CheminDAO;
 import dao.DegatDAO;
+import dao.ReparationDegatDAO;
 import model.Materiau;
 import model.Reparation;
 import model.Chemin;
 import model.Degat;
+import model.ReparationDegat;
 
 public class GestionReparationPanel extends JPanel {
     private JTabbedPane tabbedPane;
@@ -37,7 +39,6 @@ public class GestionReparationPanel extends JPanel {
 
     // Onglet Dégâts
     private JComboBox<Chemin> cmbChemin;
-    private JComboBox<Materiau> cmbMateriauDegat;
     private JTextField txtPointKm;
     private JTextField txtSurfaceM2;
     private JTextField txtProfondeurM;
@@ -46,11 +47,26 @@ public class GestionReparationPanel extends JPanel {
     private CheminDAO cheminDAO;
     private DegatDAO degatDAO;
 
+    // Modification de point kilométrique
+    private JComboBox<Degat> cmbDegatModifier;
+    private JTextField txtNouveauPointKm;
+
+    // Onglet Réparations de Dégâts
+    private JComboBox<Degat> cmbDegatReparation;
+    private JComboBox<Materiau> cmbMateriauReparation;
+    private JTable tableReparationsDegats;
+    private DefaultTableModel modelReparationsDegats;
+    private ReparationDegatDAO reparationDegatDAO;
+
+    // Récapitulatif
+    private JLabel lblCoutTotal;
+
     public GestionReparationPanel() {
         materiauDAO = new MateriauDAO();
         reparationDAO = new ReparationDAO();
         cheminDAO = new CheminDAO();
         degatDAO = new DegatDAO();
+        reparationDegatDAO = new ReparationDegatDAO();
 
         setLayout(new BorderLayout());
 
@@ -58,14 +74,17 @@ public class GestionReparationPanel extends JPanel {
         tabbedPane.addTab("Matériaux", creerPanelMateriaux());
         tabbedPane.addTab("Tarifs Réparations", creerPanelReparations());
         tabbedPane.addTab("Dégâts", creerPanelDegats());
+        tabbedPane.addTab("Réparations", creerPanelReparationsDegats());
 
         add(tabbedPane, BorderLayout.CENTER);
 
         chargerMateriaux();
         chargerReparations();
         rafraichirComboChemins();
-        rafraichirComboMateriauxDegats();
         chargerDegats(null);
+        rafraichirComboDegats();
+        rafraichirComboMateriauxReparation();
+        chargerReparationsDegats();
     }
 
     // ==================== ONGLET MATÉRIAUX ====================
@@ -180,7 +199,7 @@ public class GestionReparationPanel extends JPanel {
 
             chargerMateriaux();
             rafraichirComboMateriaux();
-            rafraichirComboMateriauxDegats();
+            rafraichirComboMateriauxReparation();
 
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this, "Erreur: " + ex.getMessage(),
@@ -210,7 +229,7 @@ public class GestionReparationPanel extends JPanel {
                         "Succès", JOptionPane.INFORMATION_MESSAGE);
                 chargerMateriaux();
                 rafraichirComboMateriaux();
-                rafraichirComboMateriauxDegats();
+                rafraichirComboMateriauxReparation();
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(this, "Erreur: " + ex.getMessage(),
                         "Erreur", JOptionPane.ERROR_MESSAGE);
@@ -376,21 +395,6 @@ public class GestionReparationPanel extends JPanel {
         }
     }
 
-    private void rafraichirComboMateriauxDegats() {
-        if (cmbMateriauDegat == null)
-            return;
-        cmbMateriauDegat.removeAllItems();
-        try {
-            List<Materiau> materiaux = materiauDAO.getAll();
-            for (Materiau m : materiaux) {
-                cmbMateriauDegat.addItem(m);
-            }
-        } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this, "Erreur lors du chargement des matériaux: " + ex.getMessage(),
-                    "Erreur", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
     private void ajouterReparation() {
         Materiau materiau = (Materiau) cmbMateriau.getSelectedItem();
         if (materiau == null) {
@@ -439,6 +443,8 @@ public class GestionReparationPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
+        JPanel topPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+
         // Formulaire d'ajout de dégât
         JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setBorder(BorderFactory.createTitledBorder("Ajouter un Dégât"));
@@ -469,19 +475,9 @@ public class GestionReparationPanel extends JPanel {
         });
         formPanel.add(cmbChemin, gbc);
 
-        // Matériau
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.weightx = 0;
-        formPanel.add(new JLabel("Matériau :"), gbc);
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        cmbMateriauDegat = new JComboBox<>();
-        formPanel.add(cmbMateriauDegat, gbc);
-
         // Point km
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy = 1;
         gbc.weightx = 0;
         formPanel.add(new JLabel("Point (km) * :"), gbc);
         gbc.gridx = 1;
@@ -491,7 +487,7 @@ public class GestionReparationPanel extends JPanel {
 
         // Surface m2
         gbc.gridx = 0;
-        gbc.gridy = 3;
+        gbc.gridy = 2;
         gbc.weightx = 0;
         formPanel.add(new JLabel("Surface (m²) * :"), gbc);
         gbc.gridx = 1;
@@ -501,7 +497,7 @@ public class GestionReparationPanel extends JPanel {
 
         // Profondeur m
         gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridy = 3;
         gbc.weightx = 0;
         formPanel.add(new JLabel("Profondeur (m) * :"), gbc);
         gbc.gridx = 1;
@@ -511,7 +507,7 @@ public class GestionReparationPanel extends JPanel {
 
         // Boutons
         gbc.gridx = 0;
-        gbc.gridy = 5;
+        gbc.gridy = 4;
         gbc.gridwidth = 2;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.NONE;
@@ -530,11 +526,61 @@ public class GestionReparationPanel extends JPanel {
         btnPanel.add(btnEffacer);
 
         formPanel.add(btnPanel, gbc);
+        topPanel.add(formPanel);
 
-        panel.add(formPanel, BorderLayout.NORTH);
+        // Formulaire de modification des points
+        JPanel modifPanel = new JPanel(new GridBagLayout());
+        modifPanel.setBorder(BorderFactory.createTitledBorder("Modifier Point Kilométrique"));
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.insets = new Insets(5, 5, 5, 5);
+        gbc2.fill = GridBagConstraints.HORIZONTAL;
 
-        // Table des dégâts
-        String[] colonnes = { "ID", "Chemin", "Point (km)", "Surface (m²)", "Profondeur (m)", "Matériau" };
+        // Dégât à modifier
+        gbc2.gridx = 0;
+        gbc2.gridy = 0;
+        gbc2.weightx = 0;
+        modifPanel.add(new JLabel("Dégât :"), gbc2);
+        gbc2.gridx = 1;
+        gbc2.weightx = 1.0;
+        cmbDegatModifier = new JComboBox<>();
+        cmbDegatModifier.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
+                Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Degat) {
+                    Degat d = (Degat) value;
+                    ((JLabel) c).setText(d.toString());
+                }
+                return c;
+            }
+        });
+        modifPanel.add(cmbDegatModifier, gbc2);
+
+        // Nouveau point
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 0;
+        modifPanel.add(new JLabel("Nouveau point (km) :"), gbc2);
+        gbc2.gridx = 1;
+        gbc2.weightx = 1.0;
+        txtNouveauPointKm = new JTextField(10);
+        modifPanel.add(txtNouveauPointKm, gbc2);
+
+        // Bouton modifier
+        gbc2.gridx = 0;
+        gbc2.gridy = 2;
+        gbc2.gridwidth = 2;
+        gbc2.fill = GridBagConstraints.NONE;
+        JButton btnModifier = new JButton("Modifier Point");
+        btnModifier.addActionListener(e -> modifierPointDegat());
+        modifPanel.add(btnModifier, gbc2);
+
+        topPanel.add(modifPanel);
+        panel.add(topPanel, BorderLayout.NORTH);
+
+        // Table des dégâts (sans colonne matériau)
+        String[] colonnes = { "ID", "Chemin", "Point (km)", "Surface (m²)", "Profondeur (m)" };
         modelDegats = new DefaultTableModel(colonnes, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -543,21 +589,26 @@ public class GestionReparationPanel extends JPanel {
         };
         tableDegats = new JTable(modelDegats);
         tableDegats.getColumnModel().getColumn(0).setPreferredWidth(50);
-        tableDegats.getColumnModel().getColumn(1).setPreferredWidth(150);
+        tableDegats.getColumnModel().getColumn(1).setPreferredWidth(200);
         tableDegats.getColumnModel().getColumn(2).setPreferredWidth(100);
-        tableDegats.getColumnModel().getColumn(3).setPreferredWidth(100);
-        tableDegats.getColumnModel().getColumn(4).setPreferredWidth(100);
-        tableDegats.getColumnModel().getColumn(5).setPreferredWidth(150);
+        tableDegats.getColumnModel().getColumn(3).setPreferredWidth(120);
+        tableDegats.getColumnModel().getColumn(4).setPreferredWidth(120);
 
         JScrollPane scrollTable = new JScrollPane(tableDegats);
-        scrollTable.setBorder(BorderFactory.createTitledBorder("Dégâts"));
+        scrollTable.setBorder(BorderFactory.createTitledBorder("Dégâts Enregistrés"));
         panel.add(scrollTable, BorderLayout.CENTER);
 
-        // Bouton supprimer
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        // Panel en bas avec boutons
+        JPanel bottomPanel = new JPanel(new FlowLayout());
+
         JButton btnSupprimer = new JButton("Supprimer Sélectionné");
         btnSupprimer.addActionListener(e -> supprimerDegat());
         bottomPanel.add(btnSupprimer);
+
+        JButton btnRecapitulatif = new JButton("Voir Récapitulatif Réparations");
+        btnRecapitulatif.addActionListener(e -> afficherRecapitulatif());
+        bottomPanel.add(btnRecapitulatif);
+
         panel.add(bottomPanel, BorderLayout.SOUTH);
 
         // Rechargement des dégâts lorsque le chemin change
@@ -569,6 +620,121 @@ public class GestionReparationPanel extends JPanel {
                 chargerDegats(null);
             }
         });
+
+        return panel;
+    }
+
+    // ==================== ONGLET RÉPARATIONS DE DÉGÂTS ====================
+
+    private JPanel creerPanelReparationsDegats() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Formulaire d'association dégât-matériau
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBorder(BorderFactory.createTitledBorder("Associer Dégât et Matériau"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Dégât
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0;
+        formPanel.add(new JLabel("Dégât * :"), gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        cmbDegatReparation = new JComboBox<>();
+        cmbDegatReparation.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
+                Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Degat) {
+                    try {
+                        Degat d = (Degat) value;
+                        Chemin ch = cheminDAO.getById(d.getCheminId());
+                        String cheminNom = ch != null ? ch.getNom() : "Chemin #" + d.getCheminId();
+                        ((JLabel) c).setText(String.format("%s - Point %.2f km (%.2f m², %.2f m prof.)",
+                                cheminNom, d.getPointKm(), d.getSurfaceM2(), d.getProfondeurM()));
+                    } catch (Exception ex) {
+                        ((JLabel) c).setText(value.toString());
+                    }
+                }
+                return c;
+            }
+        });
+        formPanel.add(cmbDegatReparation, gbc);
+
+        // Matériau
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 0;
+        formPanel.add(new JLabel("Matériau * :"), gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        cmbMateriauReparation = new JComboBox<>();
+        formPanel.add(cmbMateriauReparation, gbc);
+
+        // Boutons
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.NONE;
+        JPanel btnPanel = new JPanel(new FlowLayout());
+
+        JButton btnAssocier = new JButton("Associer Réparation");
+        btnAssocier.addActionListener(e -> associerReparation());
+        btnPanel.add(btnAssocier);
+
+        JButton btnValiderTout = new JButton("Valider Toutes les Réparations");
+        btnValiderTout.addActionListener(e -> validerToutesReparations());
+        btnPanel.add(btnValiderTout);
+
+        formPanel.add(btnPanel, gbc);
+        panel.add(formPanel, BorderLayout.NORTH);
+
+        // Table des réparations de dégâts
+        String[] colonnes = { "ID", "Dégât", "Matériau", "Coût (Ar)", "Validée" };
+        modelReparationsDegats = new DefaultTableModel(colonnes, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        tableReparationsDegats = new JTable(modelReparationsDegats);
+        tableReparationsDegats.getColumnModel().getColumn(0).setPreferredWidth(50);
+        tableReparationsDegats.getColumnModel().getColumn(1).setPreferredWidth(250);
+        tableReparationsDegats.getColumnModel().getColumn(2).setPreferredWidth(120);
+        tableReparationsDegats.getColumnModel().getColumn(3).setPreferredWidth(100);
+        tableReparationsDegats.getColumnModel().getColumn(4).setPreferredWidth(80);
+
+        JScrollPane scrollTable = new JScrollPane(tableReparationsDegats);
+        scrollTable.setBorder(BorderFactory.createTitledBorder("Réparations Programmées"));
+        panel.add(scrollTable, BorderLayout.CENTER);
+
+        // Panel du bas avec coût total et boutons
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+
+        JPanel coutPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        coutPanel.add(new JLabel("Coût total des réparations validées : "));
+        lblCoutTotal = new JLabel("0.00 Ar");
+        lblCoutTotal.setFont(new Font("Arial", Font.BOLD, 14));
+        lblCoutTotal.setForeground(new Color(0, 100, 150));
+        coutPanel.add(lblCoutTotal);
+        bottomPanel.add(coutPanel, BorderLayout.WEST);
+
+        JPanel btnBottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton btnSupprimer = new JButton("Supprimer Sélectionnée");
+        btnSupprimer.addActionListener(e -> supprimerReparationDegat());
+        btnBottomPanel.add(btnSupprimer);
+
+        JButton btnToggleValidation = new JButton("Changer Validation");
+        btnToggleValidation.addActionListener(e -> changerValidationReparation());
+        btnBottomPanel.add(btnToggleValidation);
+
+        bottomPanel.add(btnBottomPanel, BorderLayout.EAST);
+        panel.add(bottomPanel, BorderLayout.SOUTH);
 
         return panel;
     }
@@ -600,7 +766,6 @@ public class GestionReparationPanel extends JPanel {
             double pointKm = Double.parseDouble(txtPointKm.getText().trim());
             double surface = Double.parseDouble(txtSurfaceM2.getText().trim());
             double profondeur = Double.parseDouble(txtProfondeurM.getText().trim());
-            Materiau materiau = (Materiau) cmbMateriauDegat.getSelectedItem();
 
             if (pointKm < 0) {
                 JOptionPane.showMessageDialog(this, "Le point (km) doit être >= 0",
@@ -623,7 +788,6 @@ public class GestionReparationPanel extends JPanel {
             degat.setPointKm(pointKm);
             degat.setSurfaceM2(surface);
             degat.setProfondeurM(profondeur);
-            degat.setMateriauId(materiau != null ? materiau.getId() : null);
 
             int id = degatDAO.inserer(degat);
 
@@ -635,6 +799,7 @@ public class GestionReparationPanel extends JPanel {
             txtProfondeurM.setText("");
 
             chargerDegats(chemin.getId());
+            rafraichirComboDegats(); // Rafraîchir les dropdowns
 
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Veuillez saisir des valeurs numériques valides",
@@ -693,23 +858,12 @@ public class GestionReparationPanel extends JPanel {
                     cheminNom = "Chemin #" + d.getCheminId();
                 }
 
-                String materiauNom = "";
-                if (d.getMateriauId() != null) {
-                    try {
-                        Materiau m = materiauDAO.getById(d.getMateriauId());
-                        materiauNom = m != null ? m.getNom() : ("ID=" + d.getMateriauId());
-                    } catch (SQLException e) {
-                        materiauNom = "ID=" + d.getMateriauId();
-                    }
-                }
-
                 modelDegats.addRow(new Object[] {
                         d.getId(),
                         cheminNom,
                         String.format("%.2f", d.getPointKm()),
                         String.format("%.2f", d.getSurfaceM2()),
-                        String.format("%.2f", d.getProfondeurM()),
-                        materiauNom
+                        String.format("%.2f", d.getProfondeurM())
                 });
             }
         } catch (SQLException ex) {
@@ -763,6 +917,279 @@ public class GestionReparationPanel extends JPanel {
             }
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this, "Erreur lors du chargement: " + ex.getMessage(),
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // ==================== NOUVELLES MÉTHODES ====================
+
+    private void rafraichirComboDegats() {
+        if (cmbDegatModifier != null) {
+            cmbDegatModifier.removeAllItems();
+        }
+        if (cmbDegatReparation != null) {
+            cmbDegatReparation.removeAllItems();
+        }
+
+        try {
+            List<Degat> degats = degatDAO.getAll();
+            for (Degat d : degats) {
+                if (cmbDegatModifier != null) {
+                    cmbDegatModifier.addItem(d);
+                }
+                if (cmbDegatReparation != null) {
+                    cmbDegatReparation.addItem(d);
+                }
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Erreur lors du chargement des dégâts: " + ex.getMessage(),
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void rafraichirComboMateriauxReparation() {
+        if (cmbMateriauReparation == null)
+            return;
+        cmbMateriauReparation.removeAllItems();
+        try {
+            List<Materiau> materiaux = materiauDAO.getAll();
+            for (Materiau m : materiaux) {
+                cmbMateriauReparation.addItem(m);
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Erreur lors du chargement des matériaux: " + ex.getMessage(),
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void modifierPointDegat() {
+        Degat degat = (Degat) cmbDegatModifier.getSelectedItem();
+        if (degat == null) {
+            JOptionPane.showMessageDialog(this, "Veuillez sélectionner un dégât",
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            double nouveauPoint = Double.parseDouble(txtNouveauPointKm.getText().trim());
+            if (nouveauPoint < 0) {
+                JOptionPane.showMessageDialog(this, "Le point kilométrique doit être >= 0",
+                        "Erreur", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            degatDAO.mettreAJourPointKm(degat.getId(), nouveauPoint);
+            JOptionPane.showMessageDialog(this, "Point kilométrique modifié avec succès",
+                    "Succès", JOptionPane.INFORMATION_MESSAGE);
+
+            txtNouveauPointKm.setText("");
+            rafraichirComboDegats();
+            chargerDegats(null); // Recharger tous les dégâts
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Veuillez saisir une valeur numérique valide",
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Erreur: " + ex.getMessage(),
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void associerReparation() {
+        Degat degat = (Degat) cmbDegatReparation.getSelectedItem();
+        Materiau materiau = (Materiau) cmbMateriauReparation.getSelectedItem();
+
+        if (degat == null) {
+            JOptionPane.showMessageDialog(this, "Veuillez sélectionner un dégât",
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (materiau == null) {
+            JOptionPane.showMessageDialog(this, "Veuillez sélectionner un matériau",
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            ReparationDegat rd = new ReparationDegat();
+            rd.setDegatId(degat.getId());
+            rd.setMateriauId(materiau.getId());
+            rd.setValidee(false);
+
+            int id = reparationDegatDAO.inserer(rd);
+            JOptionPane.showMessageDialog(this, "Réparation associée avec succès (ID: " + id + ")",
+                    "Succès", JOptionPane.INFORMATION_MESSAGE);
+
+            chargerReparationsDegats();
+            mettreAJourCoutTotal();
+
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Erreur: " + ex.getMessage(),
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void chargerReparationsDegats() {
+        modelReparationsDegats.setRowCount(0);
+        try {
+            List<ReparationDegat> reparations = reparationDegatDAO.getAll();
+            for (ReparationDegat rd : reparations) {
+                modelReparationsDegats.addRow(new Object[] {
+                        rd.getId(),
+                        rd.getDegatInfo(),
+                        rd.getMateriauNom(),
+                        String.format("%.2f", rd.getCoutReparation()),
+                        rd.isValidee() ? "✓ Oui" : "✗ Non"
+                });
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Erreur lors du chargement: " + ex.getMessage(),
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void supprimerReparationDegat() {
+        int selectedRow = tableReparationsDegats.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Veuillez sélectionner une réparation",
+                    "Attention", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int id = (int) modelReparationsDegats.getValueAt(selectedRow, 0);
+        String degatInfo = (String) modelReparationsDegats.getValueAt(selectedRow, 1);
+
+        int confirmation = JOptionPane.showConfirmDialog(this,
+                "Voulez-vous vraiment supprimer cette réparation ?\n" + degatInfo,
+                "Confirmation", JOptionPane.YES_NO_OPTION);
+
+        if (confirmation == JOptionPane.YES_OPTION) {
+            try {
+                reparationDegatDAO.supprimer(id);
+                JOptionPane.showMessageDialog(this, "Réparation supprimée avec succès",
+                        "Succès", JOptionPane.INFORMATION_MESSAGE);
+                chargerReparationsDegats();
+                mettreAJourCoutTotal();
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "Erreur: " + ex.getMessage(),
+                        "Erreur", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void changerValidationReparation() {
+        int selectedRow = tableReparationsDegats.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Veuillez sélectionner une réparation",
+                    "Attention", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int id = (int) modelReparationsDegats.getValueAt(selectedRow, 0);
+        String valideeStr = (String) modelReparationsDegats.getValueAt(selectedRow, 4);
+        boolean estValidee = valideeStr.contains("✓");
+
+        try {
+            if (estValidee) {
+                reparationDegatDAO.annulerValidation(id);
+                JOptionPane.showMessageDialog(this, "Validation annulée",
+                        "Succès", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                reparationDegatDAO.valider(id);
+                JOptionPane.showMessageDialog(this, "Réparation validée",
+                        "Succès", JOptionPane.INFORMATION_MESSAGE);
+            }
+
+            chargerReparationsDegats();
+            mettreAJourCoutTotal();
+
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Erreur: " + ex.getMessage(),
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void validerToutesReparations() {
+        try {
+            List<ReparationDegat> reparations = reparationDegatDAO.getAll();
+            for (ReparationDegat rd : reparations) {
+                if (!rd.isValidee()) {
+                    reparationDegatDAO.valider(rd.getId());
+                }
+            }
+
+            JOptionPane.showMessageDialog(this, "Toutes les réparations ont été validées",
+                    "Succès", JOptionPane.INFORMATION_MESSAGE);
+
+            chargerReparationsDegats();
+            mettreAJourCoutTotal();
+
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Erreur: " + ex.getMessage(),
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void mettreAJourCoutTotal() {
+        try {
+            double total = reparationDegatDAO.calculerCoutTotalValidees();
+            lblCoutTotal.setText(String.format("%.2f Ar", total));
+        } catch (SQLException ex) {
+            lblCoutTotal.setText("Erreur");
+        }
+    }
+
+    private void afficherRecapitulatif() {
+        try {
+            List<ReparationDegat> reparationsValidees = reparationDegatDAO.getValidees();
+
+            if (reparationsValidees.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Aucune réparation validée à afficher",
+                        "Information", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
+            // Créer une nouvelle fenêtre pour le récapitulatif
+            JFrame frameRecap = new JFrame("Récapitulatif des Réparations Validées");
+            frameRecap.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frameRecap.setLayout(new BorderLayout());
+
+            // Table récapitulative
+            String[] colonnes = { "Dégât", "Matériau", "Coût (Ar)" };
+            DefaultTableModel modelRecap = new DefaultTableModel(colonnes, 0);
+
+            double totalGeneral = 0;
+            for (ReparationDegat rd : reparationsValidees) {
+                modelRecap.addRow(new Object[] {
+                        rd.getDegatInfo(),
+                        rd.getMateriauNom(),
+                        String.format("%.2f", rd.getCoutReparation())
+                });
+                totalGeneral += rd.getCoutReparation();
+            }
+
+            JTable tableRecap = new JTable(modelRecap);
+            tableRecap.getColumnModel().getColumn(0).setPreferredWidth(300);
+            tableRecap.getColumnModel().getColumn(1).setPreferredWidth(120);
+            tableRecap.getColumnModel().getColumn(2).setPreferredWidth(100);
+
+            frameRecap.add(new JScrollPane(tableRecap), BorderLayout.CENTER);
+
+            // Panel total
+            JPanel panelTotal = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            JLabel lblTotalRecap = new JLabel("TOTAL GÉNÉRAL : " + String.format("%.2f Ar", totalGeneral));
+            lblTotalRecap.setFont(new Font("Arial", Font.BOLD, 16));
+            lblTotalRecap.setForeground(new Color(150, 0, 0));
+            panelTotal.add(lblTotalRecap);
+
+            frameRecap.add(panelTotal, BorderLayout.SOUTH);
+
+            frameRecap.setSize(650, 400);
+            frameRecap.setLocationRelativeTo(this);
+            frameRecap.setVisible(true);
+
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Erreur: " + ex.getMessage(),
                     "Erreur", JOptionPane.ERROR_MESSAGE);
         }
     }
