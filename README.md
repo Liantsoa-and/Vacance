@@ -11,9 +11,9 @@ Paris → Dijon → Lyon via deux routes secondaires
 
 Les points forment un **graphe** :
 
-* Sommets = Points
-* Arêtes = Chemins
-* Interdiction implicite de boucles infinies (ex. Paris→Dijon→Paris→Dijon)
+- Sommets = Points
+- Arêtes = Chemins
+- Interdiction implicite de boucles infinies (ex. Paris→Dijon→Paris→Dijon)
 
 ---
 
@@ -21,11 +21,11 @@ Les points forment un **graphe** :
 
 Chaque véhicule possède :
 
-* Nom
-* Type (voiture, camion, moto…)
-* Vitesse maximale (km/h)
-* Largeur (m)
-* Longueur (m)
+- Nom
+- Type (voiture, camion, moto…)
+- Vitesse maximale (km/h)
+- Largeur (m)
+- Longueur (m)
 
 Tous les véhicules réagissent pareil aux dommages.
 
@@ -42,12 +42,12 @@ Exemple :
 
 Chaque chemin est défini par :
 
-* Nom
-* Point de départ
-* Point d’arrivée
-* Distance (km)
-* Largeur (m)
-* Direction (aller simple ou double sens)
+- Nom
+- Point de départ
+- Point d’arrivée
+- Distance (km)
+- Largeur (m)
+- Direction (aller simple ou double sens)
 
 Une route peut avoir plusieurs zones endommagées **qui ne se chevauchent jamais**.
 
@@ -73,8 +73,8 @@ Les données sont modifiables et pourront être réalignées plus tard.
 
 Exemples :
 
-* Peugeot 308 (1,80 m) peut passer sur A6 (7 m → 3,5 m → OK)
-* Le camion (2,50 m) ne peut pas sur une route de 3 m (1,50 m → NON)
+- Peugeot 308 (1,80 m) peut passer sur A6 (7 m → 3,5 m → OK)
+- Le camion (2,50 m) ne peut pas sur une route de 3 m (1,50 m → NON)
 
 ---
 
@@ -84,16 +84,16 @@ Un **dommage** est une section d’un chemin où la vitesse est réduite.
 
 Il est défini par :
 
-* Chemin concerné
-* Position début (km)
-* Position fin (km)
-* Taux de réduction (ex. 40 %)
+- Chemin concerné
+- Position début (km)
+- Position fin (km)
+- Taux de réduction (ex. 40 %)
 
 Règles :
 
-* Plusieurs dommages possibles
-* Ils **ne se chevauchent jamais**
-* Tous les véhicules subissent le **même effet**
+- Plusieurs dommages possibles
+- Ils **ne se chevauchent jamais**
+- Tous les véhicules subissent le **même effet**
 
 Effet sur une portion :
 
@@ -103,8 +103,8 @@ vitesse_effective = vitesse_vehicule * (1 - taux_reduction)
 
 Exemple sur A6 (460 km) :
 
-* Dommage 100 → 150 km
-* Réduction 40%
+- Dommage 100 → 150 km
+- Réduction 40%
   → Sur 50 km : vitesse = 60% de la vitesse normale
 
 ---
@@ -135,17 +135,17 @@ Pour aller d’un point A à un point C, on peut emprunter plusieurs chemins int
 
 Exemple :
 
-* Trajet direct Paris → Lyon (A6) = ~3h50
-* Trajet Paris → Dijon + Dijon → Lyon = beaucoup plus long
+- Trajet direct Paris → Lyon (A6) = ~3h50
+- Trajet Paris → Dijon + Dijon → Lyon = beaucoup plus long
 
 **Critère unique retenu :**
 → temps total minimal
 
 Méthode future recommandée pour calcul :
 
-* Construire un graphe pondéré
-* Utiliser un algorithme de plus court chemin basé sur le temps
-  (Dijkstra ou A* avec heuristique de distance)
+- Construire un graphe pondéré
+- Utiliser un algorithme de plus court chemin basé sur le temps
+  (Dijkstra ou A\* avec heuristique de distance)
 
 ---
 
@@ -153,12 +153,12 @@ Méthode future recommandée pour calcul :
 
 Pour décrire un voyage complet :
 
-* Véhicule utilisé
-* Liste ordonnée des chemins
-* Temps total
-* Distance totale optionnelle
-* Contrainte largeur respectée vérifiée
-* Sens de route respecté (unidirectionnel OK)
+- Véhicule utilisé
+- Liste ordonnée des chemins
+- Temps total
+- Distance totale optionnelle
+- Contrainte largeur respectée vérifiée
+- Sens de route respecté (unidirectionnel OK)
 
 Exemple final :
 
@@ -174,37 +174,30 @@ Conforme : oui
 Points qui se confondent dans la logique (à clarifier pour la base)
 
 1. **Chemin vs Dommage**
-
-   * Un chemin est **une route complète**
-   * Un dommage est **un sous-segment** d’un chemin
-   * 1 route → 0..N dommages
-   * Dommage n’existe jamais sans route
-   * En base de données :
-
-     * `route_id` = clé étrangère dans **dommage**
+   - Un chemin est **une route complète**
+   - Un dommage est **un sous-segment** d’un chemin
+   - 1 route → 0..N dommages
+   - Dommage n’existe jamais sans route
+   - En base de données :
+     - `route_id` = clé étrangère dans **dommage**
 
 2. **Point vs Chemin**
-
-   * Un point existe indépendamment
-   * Un chemin relie 2 points
-   * En base :
-
-     * `chemin(debut_point_id, fin_point_id)`
+   - Un point existe indépendamment
+   - Un chemin relie 2 points
+   - En base :
+     - `chemin(debut_point_id, fin_point_id)`
 
 3. **Direction**
-
-   * Si double sens : 1 entrée suffit avec un flag
-   * Si sens unique : l’entrée suffit pour imposer le sens
+   - Si double sens : 1 entrée suffit avec un flag
+   - Si sens unique : l’entrée suffit pour imposer le sens
 
 4. **Vitesse**
-
-   * Route ne stocke pas de vitesse (par décision)
-   * Seul le véhicule en possède une
+   - Route ne stocke pas de vitesse (par décision)
+   - Seul le véhicule en possède une
 
 5. **Calculs**
-
-   * La route garde ses distances et dommages
-   * Le véhicule apporte la vitesse au moment du calcul
+   - La route garde ses distances et dommages
+   - Le véhicule apporte la vitesse au moment du calcul
 
 ==================================================================
 
@@ -213,7 +206,7 @@ Points qui se confondent dans la logique (à clarifier pour la base)
 ```
 Point(id, nom)
 
-Chemin(id, nom, point_debut_id, point_fin_id, distance_km, largeur_m, sens)  
+Chemin(id, nom, point_debut_id, point_fin_id, distance_km, largeur_m, sens)
   sens = {SIMPLE, DOUBLE}
 
 Dommage(id, chemin_id, debut_km, fin_km, reduction_taux)
@@ -223,9 +216,9 @@ Vehicule(id, nom, type, vitesse_max, largeur_m, longueur_m)
 
 Relations :
 
-* 1 route → plusieurs dommages
-* 1 route → 1 ou 2 points selon le sens
-* 1 voyage → calcul programmatique, non stocké
+- 1 route → plusieurs dommages
+- 1 route → 1 ou 2 points selon le sens
+- 1 voyage → calcul programmatique, non stocké
 
 ==================================================================
 
@@ -235,15 +228,15 @@ Exemple de strucute du projet :
 
 Pojet
 ├── controller
-│   └── *.java <- tous ce qui sera fonction or model et listener
+│   └── _.java <- tous ce qui sera fonction or model et listener
 ├── DAO
-│   └── *.java <- tous ce qui sera acces bases qui ne seront pas necessairement dans le model
+│   └── _.java <- tous ce qui sera acces bases qui ne seront pas necessairement dans le model
 ├── inc
-│   └── *.java <- connexion aux bases de donnees
+│   └── _.java <- connexion aux bases de donnees
 ├── model
-│   └── *.java <- tous les models et leurs acces bases directement si necessaire
+│   └── _.java <- tous les models et leurs acces bases directement si necessaire
 └── view
-    └── *.java <- tous ce qui sera affichage dans le swing
+└── \*.java <- tous ce qui sera affichage dans le swing
 
 ==================================================================
 
@@ -267,7 +260,6 @@ docker cp chemin/vers/script.sql nom_du_conteneur:/tmp/script.sql
 ```
 @/tmp/script.sql
 ```
-
 
 ---
 
@@ -302,10 +294,11 @@ Puis tu peux faire :
 
 Je te conseille de créer un nouveau dossier (package) spécifique pour garder tes tests séparés de la logique métier et de l'interface.
 
-*   Chemin du dossier : `src/main/java/test/`
-*   Nom du fichier : `TestRunner.java` (ou `MainTest.java`)
+- Chemin du dossier : `src/main/java/test/`
+- Nom du fichier : `TestRunner.java` (ou `MainTest.java`)
 
 Ta structure ressemblera donc à ceci :
+
 ```text
 src/main/java/
 ├── controller/
@@ -336,7 +329,103 @@ javac -d bin -cp "lib/*:src/main/java" src/main/java/test/MainTest.java
 java -cp "bin:lib/*" test.MainTest
 ```
 
+==================================================================
 
+## Évolution du système - 27/01/26
 
+### Gestion automatique des matériaux par précipitations
 
+**Concept :** Le système évolue pour automatiser le choix des matériaux de réparation en fonction des niveaux de précipitations sur les chemins, plutôt que de laisser l'utilisateur choisir manuellement.
 
+#### 1. Nouvelles tables
+
+**Table PRECIPITATION :**
+
+```sql
+CREATE TABLE PRECIPITATION (
+    id NUMBER PRIMARY KEY,
+    chemin_id NUMBER NOT NULL REFERENCES CHEMIN(id),
+    debut_km NUMBER(8,3) NOT NULL,
+    fin_km NUMBER(8,3) NOT NULL,
+    niveau_mm NUMBER(8,3) NOT NULL
+);
+```
+
+**Table MATERIAU_PRECIPITATION :**
+
+```sql
+CREATE TABLE MATERIAU_PRECIPITATION (
+    id NUMBER PRIMARY KEY,
+    materiau_id NUMBER NOT NULL REFERENCES MATERIAU(id),
+    niveau_min_mm NUMBER(8,3) NOT NULL,
+    niveau_max_mm NUMBER(8,3) NOT NULL
+);
+```
+
+#### 2. Règles de fonctionnement
+
+**Configuration par intervalles :**
+
+- Chaque matériau est associé à un intervalle de précipitations ]min; max]
+- Exemple : 0 → 0.2mm (béton), 0.2 → 0.5mm (pavé), etc.
+- Configuration personnalisable via formulaire
+
+**Sélection automatique :**
+
+- Lors d'une réparation, le système détermine automatiquement le matériau
+- Basé sur le niveau de précipitation au point kilométrique du dégât
+- Plus de choix manuel des matériaux
+
+#### 3. Gestion des zones de précipitations
+
+**Principe :**
+
+- Les précipitations sont définies par intervalles kilométriques sur chaque chemin
+- Similaire aux dommages : début_km → fin_km avec niveau en mm
+- Un dégât (point précis) appartient à UNE SEULE zone
+
+**Règle de non-chevauchement :**
+
+- Les zones de précipitations ne peuvent pas se chevaucher
+- Entre deux zones = 0mm de précipitation (zone neutre)
+- Exemple valide : Zone A (2km→4km), Zone B (6km→8km)
+- Exemple invalide : Zone A (2km→6km), Zone B (4km→8km)
+
+#### 4. Logique de sélection
+
+**Pour un dégât au point kilométrique X :**
+
+1. Chercher la zone où `debut_km <= X < fin_km`
+2. Si zone trouvée → utiliser son niveau de précipitation
+3. Si aucune zone → considérer 0mm (matériau par défaut)
+4. Trouver le matériau où `niveau_min_mm < précipitation <= niveau_max_mm`
+5. Calculer le coût avec ce matériau
+
+**Cas particuliers à gérer :**
+
+- Aucune zone de précipitation définie sur un chemin
+  => La zone de précipitation sur ce chemin sera de 0mm
+- Aucun matériau ne correspond au niveau trouvé
+- Gaps entre les zones (matériau par défaut)
+
+#### 5. Impact sur l'existant
+
+**Classes à créer :**
+
+- `Precipitation.java` (model)
+- `MateriauPrecipitation.java` (model)
+- `PrecipitationDAO.java` (dao)
+- `MateriauPrecipitationDAO.java` (dao)
+
+**Classes à modifier :**
+
+- `ReparationDegatDAO.java` : Intégrer la logique de sélection automatique
+- Interface de gestion des réparations : Remplacer sélection manuelle
+
+**Validations nécessaires :**
+
+- Vérifier la non-superposition des zones lors de la saisie
+- S'assurer de la couverture complète des intervalles de matériaux
+- Gérer les cas d'exception avec des matériaux par défaut
+
+==================================================================

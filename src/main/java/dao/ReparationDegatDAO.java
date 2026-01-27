@@ -6,105 +6,117 @@ import java.util.List;
 
 import model.ReparationDegat;
 import model.Degat;
-import model.Materiau;
 import inc.OracleConnection;
 
 public class ReparationDegatDAO {
 
-    /**
-     * Récupère toutes les réparations de dégâts
-     */
-    public List<ReparationDegat> getAll() throws SQLException {
-        List<ReparationDegat> reparations = new ArrayList<>();
-        String sql = """
-                SELECT rd.id, rd.degat_id, rd.materiau_id, rd.validee, rd.cout_reparation,
-                       ch.nom || ' - Point ' || d.point_km || 'km' AS degat_info,
-                       m.nom AS materiau_nom,
-                       d.surface_m2, d.profondeur_m
-                FROM REPARATION_DEGAT rd
-                INNER JOIN DEGAT d ON rd.degat_id = d.id
-                INNER JOIN CHEMIN ch ON d.chemin_id = ch.id
-                INNER JOIN MATERIAU m ON rd.materiau_id = m.id
-                ORDER BY rd.id
-                """;
-
-        try (Connection conn = OracleConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                ReparationDegat rd = new ReparationDegat();
-                rd.setId(rs.getInt("id"));
-                rd.setDegatId(rs.getInt("degat_id"));
-                rd.setMateriauId(rs.getInt("materiau_id"));
-                rd.setValidee(rs.getInt("validee") == 1);
-
-                double cout = rs.getDouble("cout_reparation");
-                if (!rs.wasNull()) {
-                    rd.setCoutReparation(cout);
-                }
-
-                rd.setDegatInfo(rs.getString("degat_info"));
-                rd.setMateriauNom(rs.getString("materiau_nom"));
-                rd.setSurfaceM2(rs.getDouble("surface_m2"));
-                rd.setProfondeurM(rs.getDouble("profondeur_m"));
-
-                reparations.add(rd);
-            }
-        }
-        return reparations;
-    }
+    // Constantes SQL
+    private static final String SQL_BASE_SELECT_REPARATIONS = """
+            SELECT rd.id, rd.degat_id, rd.materiau_id, rd.validee, rd.cout_reparation,
+                   ch.nom || ' - Point ' || d.point_km || 'km' AS degat_info,
+                   m.nom AS materiau_nom,
+                   d.surface_m2, d.profondeur_m
+            FROM REPARATION_DEGAT rd
+            INNER JOIN DEGAT d ON rd.degat_id = d.id
+            INNER JOIN CHEMIN ch ON d.chemin_id = ch.id
+            INNER JOIN MATERIAU m ON rd.materiau_id = m.id
+            """;
 
     /**
-     * Récupère les réparations validées uniquement
+     * Valide les paramètres obligatoires d'une réparation de dégât
      */
-    public List<ReparationDegat> getValidees() throws SQLException {
-        List<ReparationDegat> reparations = new ArrayList<>();
-        String sql = """
-                SELECT rd.id, rd.degat_id, rd.materiau_id, rd.validee, rd.cout_reparation,
-                       ch.nom || ' - Point ' || d.point_km || 'km' AS degat_info,
-                       m.nom AS materiau_nom,
-                       d.surface_m2, d.profondeur_m
-                FROM REPARATION_DEGAT rd
-                INNER JOIN DEGAT d ON rd.degat_id = d.id
-                INNER JOIN CHEMIN ch ON d.chemin_id = ch.id
-                INNER JOIN MATERIAU m ON rd.materiau_id = m.id
-                WHERE rd.validee = 1
-                ORDER BY rd.id
-                """;
-
-        try (Connection conn = OracleConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                ReparationDegat rd = new ReparationDegat();
-                rd.setId(rs.getInt("id"));
-                rd.setDegatId(rs.getInt("degat_id"));
-                rd.setMateriauId(rs.getInt("materiau_id"));
-                rd.setValidee(true);
-                rd.setCoutReparation(rs.getDouble("cout_reparation"));
-                rd.setDegatInfo(rs.getString("degat_info"));
-                rd.setMateriauNom(rs.getString("materiau_nom"));
-                rd.setSurfaceM2(rs.getDouble("surface_m2"));
-                rd.setProfondeurM(rs.getDouble("profondeur_m"));
-
-                reparations.add(rd);
-            }
-        }
-        return reparations;
-    }
-
-    /**
-     * Insère une nouvelle réparation de dégât
-     */
-    public int inserer(ReparationDegat reparationDegat) throws SQLException {
+    private void validerParametresReparation(ReparationDegat reparationDegat) throws SQLException {
         if (reparationDegat.getDegatId() == null) {
             throw new SQLException("Le dégât est obligatoire");
         }
         if (reparationDegat.getMateriauId() == null) {
             throw new SQLException("Le matériau est obligatoire");
         }
+    }
+
+    /**
+     * Mappe un ResultSet vers un objet ReparationDegat
+     */
+    private ReparationDegat mapperReparationDegat(ResultSet rs) throws SQLException {
+        ReparationDegat rd = new ReparationDegat();
+        rd.setId(rs.getInt("id"));
+        rd.setDegatId(rs.getInt("degat_id"));
+        rd.setMateriauId(rs.getInt("materiau_id"));
+        rd.setValidee(rs.getInt("validee") == 1);
+
+        double cout = rs.getDouble("cout_reparation");
+        if (!rs.wasNull()) {
+            rd.setCoutReparation(cout);
+        }
+
+        rd.setDegatInfo(rs.getString("degat_info"));
+        rd.setMateriauNom(rs.getString("materiau_nom"));
+        rd.setSurfaceM2(rs.getDouble("surface_m2"));
+        rd.setProfondeurM(rs.getDouble("profondeur_m"));
+
+        return rd;
+    }
+
+    /**
+     * Exécute une requête de sélection de réparations avec une clause WHERE
+     * optionnelle
+     */
+    private List<ReparationDegat> executerRequeteReparations(String whereClause) throws SQLException {
+        List<ReparationDegat> reparations = new ArrayList<>();
+        String sql = SQL_BASE_SELECT_REPARATIONS;
+
+        if (whereClause != null && !whereClause.trim().isEmpty()) {
+            sql += " WHERE " + whereClause;
+        }
+
+        sql += " ORDER BY rd.id";
+
+        try (Connection conn = OracleConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                reparations.add(mapperReparationDegat(rs));
+            }
+        }
+        return reparations;
+    }
+
+    /**
+     * Exécute une mise à jour simple avec un paramètre ID
+     */
+    private void executerMiseAJourParId(String sql, int id, String messageErreur) throws SQLException {
+        try (Connection conn = OracleConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected == 0) {
+                throw new SQLException(messageErreur);
+            }
+        }
+    }
+
+    /**
+     * Récupère toutes les réparations de dégâts
+     */
+    public List<ReparationDegat> getAll() throws SQLException {
+        return executerRequeteReparations(null);
+    }
+
+    /**
+     * Récupère les réparations validées uniquement
+     */
+    public List<ReparationDegat> getValidees() throws SQLException {
+        return executerRequeteReparations("rd.validee = 1");
+    }
+
+    /**
+     * Insère une nouvelle réparation de dégât
+     */
+    public int inserer(ReparationDegat reparationDegat) throws SQLException {
+        validerParametresReparation(reparationDegat);
 
         // Calculer le coût automatiquement
         double cout = calculerCoutReparation(reparationDegat.getDegatId(), reparationDegat.getMateriauId());
@@ -170,54 +182,30 @@ public class ReparationDegatDAO {
      * Valide une réparation de dégât
      */
     public void valider(int reparationDegatId) throws SQLException {
-        String sql = "UPDATE REPARATION_DEGAT SET validee = 1 WHERE id = ?";
-
-        try (Connection conn = OracleConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, reparationDegatId);
-
-            int rowsAffected = stmt.executeUpdate();
-            if (rowsAffected == 0) {
-                throw new SQLException("Réparation de dégât non trouvée");
-            }
-        }
+        executerMiseAJourParId(
+                "UPDATE REPARATION_DEGAT SET validee = 1 WHERE id = ?",
+                reparationDegatId,
+                "Réparation de dégât non trouvée");
     }
 
     /**
      * Annule la validation d'une réparation de dégât
      */
     public void annulerValidation(int reparationDegatId) throws SQLException {
-        String sql = "UPDATE REPARATION_DEGAT SET validee = 0 WHERE id = ?";
-
-        try (Connection conn = OracleConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, reparationDegatId);
-
-            int rowsAffected = stmt.executeUpdate();
-            if (rowsAffected == 0) {
-                throw new SQLException("Réparation de dégât non trouvée");
-            }
-        }
+        executerMiseAJourParId(
+                "UPDATE REPARATION_DEGAT SET validee = 0 WHERE id = ?",
+                reparationDegatId,
+                "Réparation de dégât non trouvée");
     }
 
     /**
      * Supprime une réparation de dégât
      */
     public void supprimer(int id) throws SQLException {
-        String sql = "DELETE FROM REPARATION_DEGAT WHERE id = ?";
-
-        try (Connection conn = OracleConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, id);
-
-            int rowsAffected = stmt.executeUpdate();
-            if (rowsAffected == 0) {
-                throw new SQLException("Réparation de dégât non trouvée");
-            }
-        }
+        executerMiseAJourParId(
+                "DELETE FROM REPARATION_DEGAT WHERE id = ?",
+                id,
+                "Réparation de dégât non trouvée");
     }
 
     /**
