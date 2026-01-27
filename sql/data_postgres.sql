@@ -6,6 +6,4 @@
 INSERT INTO vehicule (nom, type, vitesse_max, largeur_m, longueur_m, reservoir_l, consommation_l100km)
 VALUES ('Peugeot 308', 'Voiture', 200, 1.80, 4.25, 50, 9);
 
-
-
 COMMIT;

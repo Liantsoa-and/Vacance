@@ -23,6 +23,93 @@ public class TrajetController {
     }
 
     /**
+     * Classe interne pour représenter un segment de route avec sa vitesse
+     */
+    private static class SegmentRoute {
+        double debutKm;
+        double finKm;
+        double vitesse;
+
+        public SegmentRoute(double debutKm, double finKm, double vitesse) {
+            this.debutKm = debutKm;
+            this.finKm = finKm;
+            this.vitesse = vitesse;
+        }
+
+        public double getDistance() {
+            return finKm - debutKm;
+        }
+
+        public double getTemps() {
+            return getDistance() / vitesse;
+        }
+    }
+
+    /**
+     * Extrait les composants de temps d'une date (heures, minutes, secondes)
+     */
+    private static int[] extraireComposantsTemps(Date date) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTime(date);
+        return new int[] {
+                cal.get(java.util.Calendar.HOUR_OF_DAY),
+                cal.get(java.util.Calendar.MINUTE),
+                cal.get(java.util.Calendar.SECOND)
+        };
+    }
+
+    /**
+     * Crée une liste de segments d'un chemin avec les vitesses appropriées selon
+     * les dommages
+     */
+    private static List<SegmentRoute> creerSegmentsAvecDommages(Chemin chemin, List<Dommage> dommages,
+            double vitesseMoyenne, double debutKm, double finKm) {
+        List<SegmentRoute> segments = new ArrayList<>();
+
+        if (dommages == null || dommages.isEmpty()) {
+            segments.add(new SegmentRoute(debutKm, finKm, vitesseMoyenne));
+            return segments;
+        }
+
+        Collections.sort(dommages, Comparator.comparingDouble(Dommage::getDebutKm));
+        double positionActuelle = debutKm;
+
+        for (Dommage d : dommages) {
+            if (d.getFinKm() <= debutKm || d.getDebutKm() >= finKm) {
+                continue;
+            }
+
+            // Segment avant le dommage
+            if (d.getDebutKm() > positionActuelle) {
+                double fin = Math.min(d.getDebutKm(), finKm);
+                segments.add(new SegmentRoute(positionActuelle, fin, vitesseMoyenne));
+                positionActuelle = fin;
+            }
+
+            // Segment dans le dommage
+            double debutDommage = Math.max(d.getDebutKm(), positionActuelle);
+            double finDommage = Math.min(d.getFinKm(), finKm);
+
+            if (finDommage > debutDommage) {
+                double vitesseReduite = vitesseMoyenne * (1.0 - d.getTaux());
+                segments.add(new SegmentRoute(debutDommage, finDommage, vitesseReduite));
+                positionActuelle = finDommage;
+            }
+
+            if (positionActuelle >= finKm) {
+                break;
+            }
+        }
+
+        // Segment final après le dernier dommage
+        if (positionActuelle < finKm) {
+            segments.add(new SegmentRoute(positionActuelle, finKm, vitesseMoyenne));
+        }
+
+        return segments;
+    }
+
+    /**
      * Calcule la vitesse moyenne réelle pour un seul chemin en tenant compte des
      * dommages
      * Utilise la formule de moyenne pondérée par la distance:
@@ -35,41 +122,11 @@ public class TrajetController {
         }
 
         double distanceChemin = chemin.getDistance();
+        List<SegmentRoute> segments = creerSegmentsAvecDommages(chemin, dommages, vitesseMoyenne, 0.0, distanceChemin);
+
         double sommePonderee = 0.0;
-        double positionActuelle = 0.0;
-
-        if (dommages == null || dommages.isEmpty()) {
-            return vitesseMoyenne;
-        }
-
-        Collections.sort(dommages, Comparator.comparingDouble(Dommage::getDebutKm));
-
-        for (Dommage d : dommages) {
-            if (d.getDebutKm() > positionActuelle) {
-                double distanceSegment = d.getDebutKm() - positionActuelle;
-                sommePonderee += vitesseMoyenne * distanceSegment;
-            }
-
-            double debutDommage = Math.max(d.getDebutKm(), positionActuelle);
-            double finDommage = Math.min(d.getFinKm(), distanceChemin);
-            double distanceDommage = finDommage - debutDommage;
-
-            if (distanceDommage > 0) {
-                double taux = d.getTaux();
-                double vitesseReduite = vitesseMoyenne * (1.0 - taux);
-                sommePonderee += vitesseReduite * distanceDommage;
-            }
-
-            positionActuelle = finDommage;
-
-            if (positionActuelle >= distanceChemin) {
-                break;
-            }
-        }
-
-        if (positionActuelle < distanceChemin) {
-            double distanceFinale = distanceChemin - positionActuelle;
-            sommePonderee += vitesseMoyenne * distanceFinale;
+        for (SegmentRoute segment : segments) {
+            sommePonderee += segment.vitesse * segment.getDistance();
         }
 
         return sommePonderee / distanceChemin;
@@ -110,68 +167,16 @@ public class TrajetController {
     }
 
     public static double calculerTemps(Chemin c, Vehicule v, List<Dommage> dommages, double vitesseMoyenne) {
-        double tempsTotal = 0.0;
-        double distanceTotaleRoute = c.getDistance();
-        double vitesseBase = vitesseMoyenne;
-
-        double positionActuelle = 0.0;
-
-        if (vitesseBase <= 0) {
+        if (vitesseMoyenne <= 0) {
             throw new IllegalArgumentException("La vitesse moyenne doit être positive");
         }
 
-        if (dommages == null || dommages.isEmpty()) {
-            return distanceTotaleRoute / vitesseBase;
-        }
-
-        Collections.sort(dommages, Comparator.comparingDouble(Dommage::getDebutKm));
-
-        for (Dommage d : dommages) {
-            if (d.getDebutKm() > positionActuelle) {
-                double distanceSegment = d.getDebutKm() - positionActuelle;
-                double tempsNormal = distanceSegment / vitesseBase;
-                tempsTotal += tempsNormal;
-            }
-
-            double debutDommage = Math.max(d.getDebutKm(), positionActuelle);
-            double finDommage = Math.min(d.getFinKm(), distanceTotaleRoute);
-            double distanceDommage = finDommage - debutDommage;
-
-            if (distanceDommage > 0) {
-                double taux = d.getTaux();
-                double vitesseReduite = vitesseBase * (1.0 - taux);
-
-                if (vitesseReduite > 0) {
-                    double tempsDommage = distanceDommage / vitesseReduite;
-                    tempsTotal += tempsDommage;
-                } else {
-                    throw new IllegalArgumentException("La vitesse réduite est nulle ou négative");
-                }
-            }
-
-            positionActuelle = finDommage;
-
-            if (positionActuelle >= distanceTotaleRoute) {
-                break;
-            }
-        }
-
-        if (positionActuelle < distanceTotaleRoute) {
-            double distanceFinale = distanceTotaleRoute - positionActuelle;
-            double tempsFinal = distanceFinale / vitesseBase;
-            tempsTotal += tempsFinal;
-        }
-
-        return tempsTotal;
+        return calculerTempsPartiel(c, 0.0, c.getDistance(), dommages, vitesseMoyenne);
     }
 
     private static String heureCouranteString(Date date) {
-        java.util.Calendar cal = java.util.Calendar.getInstance();
-        cal.setTime(date);
-        int h = cal.get(java.util.Calendar.HOUR_OF_DAY);
-        int m = cal.get(java.util.Calendar.MINUTE);
-        int s = cal.get(java.util.Calendar.SECOND);
-        return String.format("%02d:%02d:%02d", h, m, s);
+        int[] temps = extraireComposantsTemps(date);
+        return String.format("%02d:%02d:%02d", temps[0], temps[1], temps[2]);
     }
 
     public static ResultatTrajet calculerHoraires(List<Chemin> itineraire, Date heureDepart,
@@ -307,33 +312,22 @@ public class TrajetController {
      */
     private static double calculerTempsAttente(Date heureArrivee, Pause pause) {
         // Extraire juste les heures du jour (ignorer la date)
-        java.util.Calendar calArrivee = java.util.Calendar.getInstance();
-        calArrivee.setTime(heureArrivee);
-        int hArrivee = calArrivee.get(java.util.Calendar.HOUR_OF_DAY);
-        int mArrivee = calArrivee.get(java.util.Calendar.MINUTE);
-        int sArrivee = calArrivee.get(java.util.Calendar.SECOND);
-
-        java.util.Calendar calDebut = java.util.Calendar.getInstance();
-        calDebut.setTime(pause.getHeureDebut());
-        int hDebut = calDebut.get(java.util.Calendar.HOUR_OF_DAY);
-        int mDebut = calDebut.get(java.util.Calendar.MINUTE);
-        int sDebut = calDebut.get(java.util.Calendar.SECOND);
-
-        java.util.Calendar calFin = java.util.Calendar.getInstance();
-        calFin.setTime(pause.getHeureFin());
-        int hFin = calFin.get(java.util.Calendar.HOUR_OF_DAY);
-        int mFin = calFin.get(java.util.Calendar.MINUTE);
-        int sFin = calFin.get(java.util.Calendar.SECOND);
+        int[] tempsArrivee = extraireComposantsTemps(heureArrivee);
+        int[] tempsDebut = extraireComposantsTemps(pause.getHeureDebut());
+        int[] tempsFin = extraireComposantsTemps(pause.getHeureFin());
 
         // Convertir en secondes pour la comparaison
-        long secsArrivee = hArrivee * 3600 + mArrivee * 60 + sArrivee;
-        long secsDebut = hDebut * 3600 + mDebut * 60 + sDebut;
-        long secsFin = hFin * 3600 + mFin * 60 + sFin;
+        long secsArrivee = tempsArrivee[0] * 3600 + tempsArrivee[1] * 60 + tempsArrivee[2];
+        long secsDebut = tempsDebut[0] * 3600 + tempsDebut[1] * 60 + tempsDebut[2];
+        long secsFin = tempsFin[0] * 3600 + tempsFin[1] * 60 + tempsFin[2];
 
         System.out.println("  📊 Calcul attente pause:");
-        System.out.println("    - Heure arrivée: " + String.format("%02d:%02d:%02d", hArrivee, mArrivee, sArrivee));
-        System.out.println("    - Début pause:   " + String.format("%02d:%02d:%02d", hDebut, mDebut, sDebut));
-        System.out.println("    - Fin pause:     " + String.format("%02d:%02d:%02d", hFin, mFin, sFin));
+        System.out.println("    - Heure arrivée: "
+                + String.format("%02d:%02d:%02d", tempsArrivee[0], tempsArrivee[1], tempsArrivee[2]));
+        System.out.println(
+                "    - Début pause:   " + String.format("%02d:%02d:%02d", tempsDebut[0], tempsDebut[1], tempsDebut[2]));
+        System.out.println(
+                "    - Fin pause:     " + String.format("%02d:%02d:%02d", tempsFin[0], tempsFin[1], tempsFin[2]));
 
         if (secsArrivee < secsDebut) {
             System.out.println("    → Arrivée AVANT la pause → Pas d'attente");
@@ -356,55 +350,22 @@ public class TrajetController {
      */
     private static double calculerTempsPartiel(Chemin chemin, double kmDebut, double kmFin,
             List<Dommage> dommages, double vitesseMoyenne) {
-        double temps = 0.0;
-        double distance = kmFin - kmDebut;
-
-        if (distance <= 0) {
+        if (kmFin <= kmDebut) {
             return 0.0;
         }
 
-        if (dommages == null || dommages.isEmpty()) {
-            return distance / vitesseMoyenne;
-        }
+        List<SegmentRoute> segments = creerSegmentsAvecDommages(chemin, dommages, vitesseMoyenne, kmDebut, kmFin);
 
-        double positionActuelle = kmDebut;
-
-        for (Dommage d : dommages) {
-            if (d.getFinKm() <= kmDebut || d.getDebutKm() >= kmFin) {
-                continue;
-            }
-
-            // Segment avant le dommage
-            if (d.getDebutKm() > positionActuelle) {
-                double dist = Math.min(d.getDebutKm(), kmFin) - positionActuelle;
-                temps += dist / vitesseMoyenne;
-                positionActuelle += dist;
-            }
-
-            // Segment dans le dommage
-            double debutDommage = Math.max(d.getDebutKm(), positionActuelle);
-            double finDommage = Math.min(d.getFinKm(), kmFin);
-            double distDommage = finDommage - debutDommage;
-
-            if (distDommage > 0) {
-                double vitesseReduite = vitesseMoyenne * (1.0 - d.getTaux());
-                if (vitesseReduite > 0) {
-                    temps += distDommage / vitesseReduite;
-                }
-                positionActuelle = finDommage;
-            }
-
-            if (positionActuelle >= kmFin) {
-                break;
+        double tempsTotal = 0.0;
+        for (SegmentRoute segment : segments) {
+            if (segment.vitesse > 0) {
+                tempsTotal += segment.getTemps();
+            } else {
+                throw new IllegalArgumentException("La vitesse réduite est nulle ou négative");
             }
         }
 
-        // Segment final après le dernier dommage
-        if (positionActuelle < kmFin) {
-            temps += (kmFin - positionActuelle) / vitesseMoyenne;
-        }
-
-        return temps;
+        return tempsTotal;
     }
 
     /**
