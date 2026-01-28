@@ -168,4 +168,48 @@ public class DegatDAO {
             }
         }
     }
+
+    /**
+     * Récupère tous les dégâts d'un chemin spécifique
+     * Cette méthode est utilisée pour obtenir la liste complète des dégâts d'un
+     * chemin
+     */
+    public List<Degat> getDegatsByCheminId(int cheminId) throws SQLException {
+        return getParChemin(cheminId);
+    }
+
+    /**
+     * Récupère les dégâts entre deux bornes kilométriques d'un chemin
+     * 
+     * @param cheminId l'ID du chemin
+     * @param kmDebut  la borne kilométrique de début
+     * @param kmFin    la borne kilométrique de fin
+     * @return la liste des dégâts situés entre kmDebut et kmFin (inclus)
+     */
+    public List<Degat> getDegatsBetweenBornes(int cheminId, double kmDebut, double kmFin) throws SQLException {
+        List<Degat> degats = new ArrayList<>();
+        String sql = "SELECT * FROM DEGAT WHERE chemin_id = ? AND point_km >= ? AND point_km <= ? ORDER BY point_km";
+
+        try (Connection conn = OracleConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, cheminId);
+            stmt.setDouble(2, kmDebut);
+            stmt.setDouble(3, kmFin);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Degat degat = new Degat();
+                    degat.setId(rs.getInt("id"));
+                    degat.setCheminId(rs.getInt("chemin_id"));
+                    degat.setPointKm(rs.getDouble("point_km"));
+                    degat.setSurfaceM2(rs.getDouble("surface_m2"));
+                    degat.setProfondeurM(rs.getDouble("profondeur_m"));
+
+                    degats.add(degat);
+                }
+            }
+        }
+        return degats;
+    }
 }

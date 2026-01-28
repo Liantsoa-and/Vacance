@@ -13,7 +13,7 @@ CREATE SEQUENCE SEQ_POINT START WITH 5 INCREMENT BY 1 NOCACHE;
 
 -- Chemins
 DELETE FROM CHEMIN;
-INSERT INTO CHEMIN VALUES (1, 'Tana-Sambaina', 1, 2, 200, 10, 'DOUBLE');
+INSERT INTO CHEMIN VALUES (1, 'Tana-Sambaina', 1, 2, 165, 10, 'DOUBLE');
 INSERT INTO CHEMIN VALUES (2, 'Sambaina-Antsirabe', 2, 3, 120, 10, 'DOUBLE');
 INSERT INTO CHEMIN VALUES (3, 'Tana-Ampefy', 1, 4, 163, 10, 'DOUBLE');
 INSERT INTO CHEMIN VALUES (4, 'Ampefy-Sambaina', 4, 2, 88, 10, 'DOUBLE');
@@ -91,8 +91,32 @@ VALUES (4, 1, 44, 3, 0.3);
 INSERT INTO DEGAT (id, chemin_id, point_km, surface_m2, profondeur_m)
 VALUES (5, 1, 60, 30, 0.7);
 
+-- Dégât 6 : chemin 1, point km 70, surface 10m2, profondeur 0.2m
+INSERT INTO DEGAT (id, chemin_id, point_km, surface_m2, profondeur_m)
+VALUES (6, 1, 70, 10, 0.2);
+
+-- Dégât 7 : chemin 1, point km 101, surface 7m2, profondeur 0.6m
+INSERT INTO DEGAT (id, chemin_id, point_km, surface_m2, profondeur_m)
+VALUES (7, 1, 101, 7, 0.6);
+
+-- Dégât 8 : chemin 1, point km 105, surface 42m2, profondeur 0.5m
+INSERT INTO DEGAT (id, chemin_id, point_km, surface_m2, profondeur_m)
+VALUES (8, 1, 105, 42, 0.5);
+
+-- Dégât 9 : chemin 1, point km 130, surface 11m2, profondeur 0.1m
+INSERT INTO DEGAT (id, chemin_id, point_km, surface_m2, profondeur_m)
+VALUES (9, 1, 130, 11, 0.1);
+
+-- Dégât 10 : chemin 1, point km 132, surface 25m2, profondeur 0.3m
+INSERT INTO DEGAT (id, chemin_id, point_km, surface_m2, profondeur_m)
+VALUES (10, 1, 132, 25, 0.3);
+
+-- Dégât 11 : chemin 1, point km 150, surface 13m2, profondeur 0.4m
+INSERT INTO DEGAT (id, chemin_id, point_km, surface_m2, profondeur_m)
+VALUES (11, 1, 150, 13, 0.4);
+
 DROP SEQUENCE SEQ_DEGAT;
-CREATE SEQUENCE SEQ_DEGAT START WITH 6 INCREMENT BY 1 NOCACHE;
+CREATE SEQUENCE SEQ_DEGAT START WITH 12 INCREMENT BY 1 NOCACHE;
 
 -- Dommages
 DELETE FROM DOMMAGE;
@@ -116,5 +140,55 @@ CREATE SEQUENCE SEQ_DOMMAGE START WITH 5 INCREMENT BY 1 NOCACHE;
 
 -- DROP SEQUENCE SEQ_PAUSE;
 -- CREATE SEQUENCE SEQ_PAUSE START WITH 3 INCREMENT BY 1 NOCACHE;
+
+-- Précipitations
+DELETE FROM PRECIPITATION;
+-- Précipitation 1 : chemin 1, 0-20 km, niveau 0.07 mm
+INSERT INTO PRECIPITATION (id, chemin_id, debut_km, fin_km, niveau_mm)
+VALUES (1, 1, 0, 20, 0.07);
+
+-- Précipitation 2 : chemin 1, 21-30 km, niveau 0.01 mm
+INSERT INTO PRECIPITATION (id, chemin_id, debut_km, fin_km, niveau_mm)
+VALUES (2, 1, 21, 30, 0.01);
+
+-- Précipitation 3 : chemin 1, 31-40 km, niveau 0.04 mm
+INSERT INTO PRECIPITATION (id, chemin_id, debut_km, fin_km, niveau_mm)
+VALUES (3, 1, 31, 40, 0.04);
+
+-- Précipitation 4 : chemin 1, 41-50 km, niveau 0.08 mm
+INSERT INTO PRECIPITATION (id, chemin_id, debut_km, fin_km, niveau_mm)
+VALUES (4, 1, 41, 50, 0.08);
+
+-- Précipitation 5 : chemin 1, 51-65 km, niveau 0.01 mm
+INSERT INTO PRECIPITATION (id, chemin_id, debut_km, fin_km, niveau_mm)
+VALUES (5, 1, 51, 65, 0.01);
+
+-- Précipitation 6 : chemin 1, 66-80 km, niveau 0.08 mm
+INSERT INTO PRECIPITATION (id, chemin_id, debut_km, fin_km, niveau_mm)
+VALUES (6, 1, 66, 80, 0.08);
+
+-- Précipitation 7 : chemin 1, 81-100 km, niveau 0.01 mm
+INSERT INTO PRECIPITATION (id, chemin_id, debut_km, fin_km, niveau_mm)
+VALUES (7, 1, 81, 100, 0.01);
+
+-- Précipitation 8 : chemin 1, 101-120 km, niveau 0.06 mm
+INSERT INTO PRECIPITATION (id, chemin_id, debut_km, fin_km, niveau_mm)
+VALUES (8, 1, 101, 120, 0.06);
+
+-- Précipitation 9 : chemin 1, 121-130 km, niveau 0.03 mm
+INSERT INTO PRECIPITATION (id, chemin_id, debut_km, fin_km, niveau_mm)
+VALUES (9, 1, 121, 130, 0.03);
+
+-- Précipitation 10 : chemin 1, 131-150 km, niveau 0.01 mm
+INSERT INTO PRECIPITATION (id, chemin_id, debut_km, fin_km, niveau_mm)
+VALUES (10, 1, 131, 150, 0.01);
+
+-- Précipitation 11 : chemin 1, 151-165 km, niveau 0.07 mm
+INSERT INTO PRECIPITATION (id, chemin_id, debut_km, fin_km, niveau_mm)
+VALUES (11, 1, 151, 165, 0.07);
+
+DROP SEQUENCE SEQ_PRECIPITATION;
+CREATE SEQUENCE SEQ_PRECIPITATION START WITH 12 INCREMENT BY 1 NOCACHE;
+
 
 COMMIT;

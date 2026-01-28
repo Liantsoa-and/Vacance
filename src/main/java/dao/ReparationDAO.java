@@ -71,6 +71,42 @@ public class ReparationDAO {
     }
 
     /**
+     * Trouve la réparation appropriée pour un matériau et une profondeur donnés
+     * La profondeur doit être dans l'intervalle [profondeur_min, profondeur_max]
+     */
+    public Reparation findByMateriauAndProfondeur(int materiauId, double profondeur) throws SQLException {
+        String sql = "SELECT r.*, m.nom as materiau_nom " +
+                "FROM REPARATION r " +
+                "INNER JOIN MATERIAU m ON r.materiau_id = m.id " +
+                "WHERE r.materiau_id = ? " +
+                "AND ? > r.profondeur_min " +
+                "AND ? <= r.profondeur_max";
+
+        try (Connection conn = OracleConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, materiauId);
+            stmt.setDouble(2, profondeur);
+            stmt.setDouble(3, profondeur);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Reparation reparation = new Reparation();
+                    reparation.setId(rs.getInt("id"));
+                    reparation.setMateriauId(rs.getInt("materiau_id"));
+                    reparation.setMateriauNom(rs.getString("materiau_nom"));
+                    reparation.setProfondeurMin(rs.getDouble("profondeur_min"));
+                    reparation.setProfondeurMax(rs.getDouble("profondeur_max"));
+                    reparation.setPrixParM2(rs.getDouble("prix_par_m2"));
+                    reparation.setDescription(rs.getString("description"));
+                    return reparation;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Vérifie si un intervalle chevauche un intervalle existant pour un matériau
      * Chevauchement si: (new_min < existing_max) AND (new_max > existing_min)
      */

@@ -7,7 +7,6 @@ import java.util.List;
 import model.ReparationDegat;
 import model.Degat;
 import model.Materiau;
-import model.Reparation;
 import inc.OracleConnection;
 import controller.MaterialSelectionService;
 
@@ -113,6 +112,27 @@ public class ReparationDegatDAO {
      */
     public List<ReparationDegat> getValidees() throws SQLException {
         return executerRequeteReparations("rd.validee = 1");
+    }
+
+    /**
+     * Récupère toutes les réparations pour un dégât spécifique
+     */
+    public List<ReparationDegat> getByDegatId(int degatId) throws SQLException {
+        List<ReparationDegat> reparations = new ArrayList<>();
+        String sql = SQL_BASE_SELECT_REPARATIONS + " WHERE rd.degat_id = ? ORDER BY rd.id";
+
+        try (Connection conn = OracleConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, degatId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    reparations.add(mapperReparationDegat(rs));
+                }
+            }
+        }
+        return reparations;
     }
 
     /**
@@ -278,13 +298,13 @@ public class ReparationDegatDAO {
 
         // 2. Sélection automatique du matériau selon les précipitations
         Materiau materiau = materialService.getMaterialForDommage(degat.getCheminId(), degat.getPointKm());
-        
+
         // 3. Affecter le matériau sélectionné automatiquement
         reparationDegat.setMateriauId(materiau.getId());
-        
+
         // 4. Log pour information
-        System.out.println("Matériau sélectionné automatiquement: " + materiau.getNom() 
-                        + " pour dégât au km " + degat.getPointKm());
+        System.out.println("Matériau sélectionné automatiquement: " + materiau.getNom()
+                + " pour dégât au km " + degat.getPointKm());
 
         // 5. Utiliser la méthode d'insertion existante (qui calcule déjà le coût)
         return inserer(reparationDegat);

@@ -54,6 +54,10 @@ public class MainFrame extends JFrame {
         PrecipitationManagementPanel panelPrecipitations = new PrecipitationManagementPanel();
         tabbedPane.addTab("⛈️ Précipitations", panelPrecipitations);
 
+        // Onglet 6: Calcul par Bornes Kilométriques
+        BorneFilterPanel panelBornes = new BorneFilterPanel();
+        tabbedPane.addTab("📍 Bornes Kilométriques", panelBornes);
+
         add(tabbedPane);
 
         // Écoutants

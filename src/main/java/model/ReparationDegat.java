@@ -5,7 +5,7 @@ public class ReparationDegat {
     private Integer degatId;
     private Integer materiauId;
     private boolean validee;
-    private double coutReparation;
+    private Double coutReparation;
 
     // Informations pour affichage
     private String degatInfo; // ex: "Chemin A - Point 5.2km"
@@ -55,11 +55,11 @@ public class ReparationDegat {
         this.validee = validee;
     }
 
-    public double getCoutReparation() {
+    public Double getCoutReparation() {
         return coutReparation;
     }
 
-    public void setCoutReparation(double coutReparation) {
+    public void setCoutReparation(Double coutReparation) {
         this.coutReparation = coutReparation;
     }
 
