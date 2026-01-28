@@ -666,25 +666,44 @@ public class GestionReparationPanel extends JPanel {
         });
         formPanel.add(cmbDegatReparation, gbc);
 
-        // Matériau
+        // Matériau (maintenant optionnel avec mode automatique)
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weightx = 0;
-        formPanel.add(new JLabel("Matériau * :"), gbc);
+        formPanel.add(new JLabel("Matériau :"), gbc);
         gbc.gridx = 1;
         gbc.weightx = 1.0;
         cmbMateriauReparation = new JComboBox<>();
+        cmbMateriauReparation.setEnabled(true); // Activé par défaut pour sélection manuelle
         formPanel.add(cmbMateriauReparation, gbc);
+
+        // Checkbox pour sélection automatique
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        JCheckBox chkSelectionAuto = new JCheckBox("🤖 Sélection automatique du matériau (selon précipitations)");
+        chkSelectionAuto.setSelected(false);
+        chkSelectionAuto.addActionListener(e -> {
+            boolean auto = chkSelectionAuto.isSelected();
+            cmbMateriauReparation.setEnabled(!auto);
+        });
+        formPanel.add(chkSelectionAuto, gbc);
 
         // Boutons
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy = 3;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.NONE;
         JPanel btnPanel = new JPanel(new FlowLayout());
 
         JButton btnAssocier = new JButton("Associer Réparation");
-        btnAssocier.addActionListener(e -> associerReparation());
+        btnAssocier.addActionListener(e -> {
+            if (chkSelectionAuto.isSelected()) {
+                associerReparationAutomatique();
+            } else {
+                associerReparation();
+            }
+        });
         btnPanel.add(btnAssocier);
 
         JButton btnValiderTout = new JButton("Valider Toutes les Réparations");
@@ -1034,6 +1053,43 @@ public class GestionReparationPanel extends JPanel {
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this, "Erreur: " + ex.getMessage(),
                     "Erreur", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void associerReparationAutomatique() {
+        Degat degat = (Degat) cmbDegatReparation.getSelectedItem();
+
+        if (degat == null) {
+            JOptionPane.showMessageDialog(this, "Veuillez sélectionner un dégât",
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            ReparationDegat rd = new ReparationDegat();
+            rd.setDegatId(degat.getId());
+            rd.setValidee(false);
+
+            // Utiliser la méthode de sélection automatique
+            int id = reparationDegatDAO.insererAvecSelectionAutomatique(rd);
+
+            JOptionPane.showMessageDialog(this,
+                    "🤖 Réparation créée avec sélection automatique du matériau (ID: " + id + ")",
+                    "Succès", JOptionPane.INFORMATION_MESSAGE);
+
+            chargerReparationsDegats();
+            mettreAJourCoutTotal();
+
+        } catch (SQLException ex) {
+            if (ex.getMessage().contains("Aucun matériau")) {
+                JOptionPane.showMessageDialog(this,
+                        "❌ Sélection automatique impossible!\n\n" + ex.getMessage() +
+                                "\n\nVeuillez configurer les zones de précipitation et les matériaux.",
+                        "Erreur de configuration", JOptionPane.ERROR_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "Erreur: " + ex.getMessage(),
+                        "Erreur", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 

@@ -46,6 +46,14 @@ public class MainFrame extends JFrame {
         GestionReparationPanel panelReparations = new GestionReparationPanel();
         tabbedPane.addTab("🔧 Réparations", panelReparations);
 
+        // Onglet 4: Simulation Réparations
+        SimulationReparationPanel panelSimulation = new SimulationReparationPanel();
+        tabbedPane.addTab("🤖 Simulation Auto", panelSimulation);
+
+        // Onglet 5: Gestion Précipitations
+        PrecipitationManagementPanel panelPrecipitations = new PrecipitationManagementPanel();
+        tabbedPane.addTab("⛈️ Précipitations", panelPrecipitations);
+
         add(tabbedPane);
 
         // Écoutants

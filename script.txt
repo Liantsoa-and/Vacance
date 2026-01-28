@@ -1,0 +1,2 @@
+docker cp /home/liantsoa/Documents/Ratah/Vacance/sql/script_oracle.sql oracle:/tmp/script_oracle.sql
+docker cp /home/liantsoa/Documents/Ratah/Vacance/sql/data_oracle.sql oracle:/tmp/data_oracle.sql

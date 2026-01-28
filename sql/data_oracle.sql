@@ -1,5 +1,5 @@
 -- ======================================================
--- INSERTION DES DONNEES
+-- INSERTION DES DONNÉES
 -- ======================================================
 
 -- Points
@@ -20,9 +20,82 @@ INSERT INTO CHEMIN VALUES (4, 'Ampefy-Sambaina', 4, 2, 88, 10, 'DOUBLE');
 DROP SEQUENCE SEQ_CHEMIN;
 CREATE SEQUENCE SEQ_CHEMIN START WITH 5 INCREMENT BY 1 NOCACHE;
 
+-- Matériaux
+DELETE FROM MATERIAU;
+INSERT INTO MATERIAU (id, nom, description) VALUES (1, 'beton', 'Matériau de construction en béton');
+INSERT INTO MATERIAU (id, nom, description) VALUES (2, 'goudron', 'Revêtement en asphalte/goudron');
+INSERT INTO MATERIAU (id, nom, description) VALUES (3, 'pave', 'Pavés en pierre ou béton');
+DROP SEQUENCE SEQ_MATERIAU;
+CREATE SEQUENCE SEQ_MATERIAU START WITH 4 INCREMENT BY 1 NOCACHE;
+
+-- Réparations pour le béton
+DELETE FROM REPARATION;
+-- Béton: 0 à 0.2 : 10000
+INSERT INTO REPARATION (id, materiau_id, profondeur_min, profondeur_max, prix_par_m2, description)
+VALUES (1, 1, 0, 0.2, 10000, 'Réparation béton - faible profondeur');
+
+-- Béton: 0.2 à 0.4 : 15000
+INSERT INTO REPARATION (id, materiau_id, profondeur_min, profondeur_max, prix_par_m2, description)
+VALUES (2, 1, 0.2, 0.4, 15000, 'Réparation béton - profondeur moyenne');
+
+-- Béton: 0.4 à 0.6 : 20000
+INSERT INTO REPARATION (id, materiau_id, profondeur_min, profondeur_max, prix_par_m2, description)
+VALUES (3, 1, 0.4, 0.6, 20000, 'Réparation béton - profondeur importante');
+
+-- Béton: 0.6 à 0.8 : 25000
+INSERT INTO REPARATION (id, materiau_id, profondeur_min, profondeur_max, prix_par_m2, description)
+VALUES (4, 1, 0.6, 0.8, 25000, 'Réparation béton - très profonde');
+
+-- Goudron: 0 à 0.4 : 15000
+INSERT INTO REPARATION (id, materiau_id, profondeur_min, profondeur_max, prix_par_m2, description)
+VALUES (5, 2, 0, 0.4, 15000, 'Réparation goudron - faible à moyenne profondeur');
+
+-- Goudron: 0.4 à 0.8 : 20000
+INSERT INTO REPARATION (id, materiau_id, profondeur_min, profondeur_max, prix_par_m2, description)
+VALUES (6, 2, 0.4, 0.8, 20000, 'Réparation goudron - profondeur importante');
+
+-- Pavé: 0 à 0.2 : 5000
+INSERT INTO REPARATION (id, materiau_id, profondeur_min, profondeur_max, prix_par_m2, description)
+VALUES (7, 3, 0, 0.2, 5000, 'Réparation pavé - faible profondeur');
+
+-- Pavé: 0.2 à 0.5 : 6000
+INSERT INTO REPARATION (id, materiau_id, profondeur_min, profondeur_max, prix_par_m2, description)
+VALUES (8, 3, 0.2, 0.5, 6000, 'Réparation pavé - profondeur moyenne');
+
+-- Pavé: 0.5 à 0.9 : 10000
+INSERT INTO REPARATION (id, materiau_id, profondeur_min, profondeur_max, prix_par_m2, description)
+VALUES (9, 3, 0.5, 0.9, 10000, 'Réparation pavé - profondeur importante');
+
+DROP SEQUENCE SEQ_REPARATION;
+CREATE SEQUENCE SEQ_REPARATION START WITH 10 INCREMENT BY 1 NOCACHE;
+
+-- Dégâts
+DELETE FROM DEGAT;
+-- Dégât 1 : chemin 1, point km 10, surface 10m2, profondeur 0.5m
+INSERT INTO DEGAT (id, chemin_id, point_km, surface_m2, profondeur_m)
+VALUES (1, 1, 10, 10, 0.5);
+
+-- Dégât 2 : chemin 1, point km 25, surface 5m2, profondeur 0.45m
+INSERT INTO DEGAT (id, chemin_id, point_km, surface_m2, profondeur_m)
+VALUES (2, 1, 25, 5, 0.45);
+
+-- Dégât 3 : chemin 1, point km 32, surface 12m2, profondeur 0.6m
+INSERT INTO DEGAT (id, chemin_id, point_km, surface_m2, profondeur_m)
+VALUES (3, 1, 32, 12, 0.6);
+
+-- Dégât 4 : chemin 1, point km 44, surface 3m2, profondeur 0.3m
+INSERT INTO DEGAT (id, chemin_id, point_km, surface_m2, profondeur_m)
+VALUES (4, 1, 44, 3, 0.3);
+
+-- Dégât 5 : chemin 1, point km 60, surface 30m2, profondeur 0.7m
+INSERT INTO DEGAT (id, chemin_id, point_km, surface_m2, profondeur_m)
+VALUES (5, 1, 60, 30, 0.7);
+
+DROP SEQUENCE SEQ_DEGAT;
+CREATE SEQUENCE SEQ_DEGAT START WITH 6 INCREMENT BY 1 NOCACHE;
+
 -- Dommages
 DELETE FROM DOMMAGE;
-
 -- 1 dommage
 INSERT INTO DOMMAGE VALUES (1, 1, 30, 77, 0.22);
 INSERT INTO DOMMAGE VALUES (2, 2, 12, 25, 0.66);

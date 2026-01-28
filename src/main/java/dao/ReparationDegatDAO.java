@@ -6,7 +6,10 @@ import java.util.List;
 
 import model.ReparationDegat;
 import model.Degat;
+import model.Materiau;
+import model.Reparation;
 import inc.OracleConnection;
+import controller.MaterialSelectionService;
 
 public class ReparationDegatDAO {
 
@@ -253,5 +256,37 @@ public class ReparationDegatDAO {
             }
         }
         return degats;
+    }
+
+    /**
+     * Insère une nouvelle réparation avec sélection automatique du matériau
+     * basée sur les précipitations du chemin
+     */
+    public int insererAvecSelectionAutomatique(ReparationDegat reparationDegat) throws SQLException {
+        if (reparationDegat.getDegatId() == null) {
+            throw new SQLException("Le dégât est obligatoire");
+        }
+
+        MaterialSelectionService materialService = new MaterialSelectionService();
+        DegatDAO degatDAO = new DegatDAO();
+
+        // 1. Récupérer les infos du dégât
+        Degat degat = degatDAO.getById(reparationDegat.getDegatId());
+        if (degat == null) {
+            throw new SQLException("Dégât introuvable avec l'ID: " + reparationDegat.getDegatId());
+        }
+
+        // 2. Sélection automatique du matériau selon les précipitations
+        Materiau materiau = materialService.getMaterialForDommage(degat.getCheminId(), degat.getPointKm());
+        
+        // 3. Affecter le matériau sélectionné automatiquement
+        reparationDegat.setMateriauId(materiau.getId());
+        
+        // 4. Log pour information
+        System.out.println("Matériau sélectionné automatiquement: " + materiau.getNom() 
+                        + " pour dégât au km " + degat.getPointKm());
+
+        // 5. Utiliser la méthode d'insertion existante (qui calcule déjà le coût)
+        return inserer(reparationDegat);
     }
 }
