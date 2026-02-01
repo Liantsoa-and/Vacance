@@ -12,12 +12,12 @@ import java.util.List;
 public class PointDAO {
     public List<Point> getAll() {
         List<Point> listePoints = new ArrayList<>();
-        
+
         String sql = "SELECT * FROM POINT ORDER BY nom";
 
         try (Connection conn = OracleConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
 
             // Parcours des résultats
             while (rs.next()) {
@@ -48,7 +48,7 @@ public class PointDAO {
         String sql = "SELECT id, nom FROM POINT WHERE id = ?";
 
         try (Connection conn = OracleConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             // On remplace le '?' par l'ID demandé (protection contre injection SQL)
             stmt.setInt(1, idCherche);
